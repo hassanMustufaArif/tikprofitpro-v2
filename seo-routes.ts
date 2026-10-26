@@ -7,20 +7,22 @@ export type RouteMeta = {
   /** Short unique summary rendered into the static HTML so crawlers see distinct content. */
   heading: string;
   body: string;
+  /** Set true to keep the route out of search indexes (legal pages). */
+  noindex?: boolean;
 };
 
 export const routeMeta: Record<string, RouteMeta> = {
   "/": {
     title: "TikProfitPro — TikTok Shop Product Research Tool",
     description:
-      "Find winning TikTok Shop products with virality scores, new shops, and top creators. Start free.",
+      "Find trending TikTok Shop products before they go viral. 700+ products updated weekly, a free profit calculator and supplier directory. Free plan, Pro $39/mo.",
     heading: "TikTok Shop product research",
     body: "TikProfitPro tracks trending TikTok Shop products, virality scores, new shops and top creators so US sellers can spot winners early, source them from verified suppliers and check margins before listing.",
   },
   "/calculator": {
-    title: "Profit Calculator — TikProfitPro",
+    title: "TikTok Shop Profit Calculator (Free) | TikProfitPro",
     description:
-      "Calculate your TikTok Shop product profit margins instantly, including fees and shipping costs.",
+      "Free TikTok Shop profit calculator for US sellers. Work out your real profit and margin per sale after product cost, fees and shipping.",
     heading: "TikTok Shop profit calculator",
     body: "Enter selling price, product cost, shipping and the TikTok referral fee to see net profit, margin and profit per order instantly for any quantity.",
   },
@@ -72,6 +74,7 @@ export const routeMeta: Record<string, RouteMeta> = {
       "Read the terms of service for using TikProfitPro's TikTok Shop research platform.",
     heading: "Terms of service",
     body: "The terms governing use of TikProfitPro: account rules, acceptable use, subscription billing, data accuracy disclaimers and limits of liability.",
+    noindex: true,
   },
   "/refund": {
     title: "Refund Policy — TikProfitPro",
@@ -79,5 +82,6 @@ export const routeMeta: Record<string, RouteMeta> = {
       "Read TikProfitPro's refund policy for Pro and Ultimate subscription plans.",
     heading: "Refund policy",
     body: "How refunds work for Pro and Ultimate subscriptions, including eligibility windows, how to request a refund and how cancellations affect billing.",
+    noindex: true,
   },
 };

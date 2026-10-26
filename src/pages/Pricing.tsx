@@ -64,7 +64,7 @@ const Pricing = () => {
             {["10 trending products", "Basic virality scores", "Dashboard overview"].map((f) => (
               <div key={f} className="flex items-center gap-2 text-sm mb-2.5"><span style={{ color: "#00ff85" }}>✓</span> {f}</div>
             ))}
-            {["Full 100 products", "Sourcing credits", "Profit calculator", "Supplier matching"].map((f) => (
+            {["Full 700+ products", "Sourcing credits", "Profit calculator", "Supplier matching"].map((f) => (
               <div key={f} className="flex items-center gap-2 text-sm mb-2.5" style={{ color: "#555" }}><span>✕</span> {f}</div>
             ))}
             <Link to={freeCta}
@@ -84,7 +84,7 @@ const Pricing = () => {
             </div>
             <p className="text-4xl md:text-5xl font-extrabold mt-1">$39</p>
             <p className="text-xs mt-1 mb-5 md:mb-6" style={{ color: "#666" }}>per month</p>
-            {["All 100 trending products", "50 sourcing credits/month", "Alibaba + AliExpress + Amazon", "Profit calculator", "Advanced virality scores", "Weekly updated rankings"].map((f) => (
+            {["All 700+ trending products", "50 sourcing credits/month", "Alibaba + AliExpress + Amazon", "Profit calculator", "Advanced virality scores", "Weekly updated rankings"].map((f) => (
               <div key={f} className="flex items-center gap-2 text-sm mb-2.5"><span style={{ color: "#00ff85" }}>✓</span> {f}</div>
             ))}
             <button onClick={() => handleCheckout("pro")} disabled={loadingPlan === "pro"}
@@ -100,7 +100,7 @@ const Pricing = () => {
             <p className="text-sm" style={{ color: "#c0a0ff" }}>Ultimate</p>
             <p className="text-4xl md:text-5xl font-extrabold mt-1">$99</p>
             <p className="text-xs mt-1 mb-5 md:mb-6" style={{ color: "#666" }}>per month</p>
-            {["All 100 trending products", "120 sourcing credits/month", "All Pro features included", "Priority support", "Early access to new features", "Dedicated account manager"].map((f) => (
+            {["All 700+ trending products", "120 sourcing credits/month", "All Pro features included", "Priority support", "Early access to new features", "Dedicated account manager"].map((f) => (
               <div key={f} className="flex items-center gap-2 text-sm mb-2.5"><span style={{ color: "#c0a0ff" }}>✓</span> {f}</div>
             ))}
             <button onClick={() => handleCheckout("ultimate")} disabled={loadingPlan === "ultimate"}

@@ -36,12 +36,12 @@ const Landing = () => {
           <motion.div variants={fadeChild}>
             <span className="inline-block px-4 md:px-5 py-2 rounded-full text-xs md:text-sm font-medium border"
               style={{ background: "rgba(0,255,133,0.08)", borderColor: "rgba(0,255,133,0.25)", color: "#00ff85" }}>
-              🔥 100 Trending Products Updated Weekly
+              🔥 700+ Trending Products Updated Weekly
             </span>
           </motion.div>
 
           <motion.h1 variants={fadeChild} className="text-3xl sm:text-4xl md:text-7xl font-extrabold leading-[1.1] md:leading-[1.05] tracking-tight">
-            Find TikTok Shop<br />
+            <span className="sr-only">TikProfitPro — </span>Find TikTok Shop<br />
             <span className="bg-gradient-to-r from-white to-[#00ff85] bg-clip-text text-transparent">Winners Before</span>
             <br />They Go Viral
           </motion.h1>
@@ -120,7 +120,7 @@ const Landing = () => {
       <SectionWrapper className="pb-16 md:pb-24">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {[
-            { value: "100+", label: "Trending Products Weekly" },
+            { value: "700+", label: "Trending Products Weekly" },
             { value: "$2.3M+", label: "GMV Tracked Daily" },
             { value: "8,000+", label: "Sellers Trust TikProfitPro" },
             { value: "94%", label: "Find a Winner in Week 1" },
@@ -139,7 +139,7 @@ const Landing = () => {
         <p className="text-center mb-8 md:mb-12 text-sm md:text-base" style={{ color: "#888" }}>Three steps to finding your next winning product</p>
         <div className="grid md:grid-cols-3 gap-6 md:gap-8">
           {[
-            { num: "1", icon: "📊", title: "We Track 1,000+ Products", desc: "We track 1,000+ TikTok Shop products weekly so you don't have to." },
+            { num: "1", icon: "📊", title: "We Track 700+ Products", desc: "We track 700+ TikTok Shop products weekly so you don't have to." },
             { num: "2", icon: "🧠", title: "Algorithm Scores Virality", desc: "Our algorithm scores virality before products peak — giving you the edge." },
             { num: "3", icon: "🚀", title: "You Source & List First", desc: "You find the supplier, calculate profit, and list it first — before the competition." },
           ].map((step) => (
@@ -212,7 +212,7 @@ const Landing = () => {
         <h2 className="text-2xl md:text-4xl font-extrabold text-center tracking-tight mb-8 md:mb-12">Start Selling Winners in 3 Steps</h2>
         <div className="grid md:grid-cols-3 gap-6 md:gap-8">
           {[
-            { num: "1", icon: "🔍", title: "Browse Trending Products", desc: "Explore 100+ products ranked by virality score, updated weekly." },
+            { num: "1", icon: "🔍", title: "Browse Trending Products", desc: "Explore 700+ products ranked by virality score, updated weekly." },
             { num: "2", icon: "💰", title: "Calculate Profit Margins", desc: "Instantly see your net profit after all TikTok fees and ad costs." },
             { num: "3", icon: "🚀", title: "Source & Launch", desc: "Find verified suppliers, place orders, and start selling fast." },
           ].map((step) => (
@@ -251,7 +251,7 @@ const Landing = () => {
             {["Top 10 trending products", "Basic virality scores", "Dashboard overview"].map((f) => (
               <div key={f} className="flex items-center gap-2 text-sm mb-2.5"><span style={{ color: "#00ff85" }}>✓</span> {f}</div>
             ))}
-            {["Full 100 products", "Supplier matching", "Profit calculator", "Product detail stats"].map((f) => (
+            {["Full 700+ products", "Supplier matching", "Profit calculator", "Product detail stats"].map((f) => (
               <div key={f} className="flex items-center gap-2 text-sm mb-2.5" style={{ color: "#555" }}><span>✕</span> {f}</div>
             ))}
             <Link to="/pricing#free" className="mt-5 md:mt-6 w-full inline-flex justify-center py-3 rounded-xl border border-white/15 text-sm font-medium hover:bg-white/5 transition-all min-h-[44px] items-center">
@@ -268,7 +268,7 @@ const Landing = () => {
             </div>
             <p className="text-4xl md:text-5xl font-extrabold mt-1">$39</p>
             <p className="text-xs mt-1 mb-5 md:mb-6" style={{ color: "#666" }}>per month</p>
-            {["All 100 trending products", "Advanced virality scores", "Profit calculator", "Supplier matching (50 credits)", "Full product detail stats", "Weekly updated rankings"].map((f) => (
+            {["All 700+ trending products", "Advanced virality scores", "Profit calculator", "Supplier matching (50 credits)", "Full product detail stats", "Weekly updated rankings"].map((f) => (
               <div key={f} className="flex items-center gap-2 text-sm mb-2.5"><span style={{ color: "#00ff85" }}>✓</span> {f}</div>
             ))}
             <Link to="/pricing"
@@ -371,6 +371,25 @@ const Landing = () => {
               View LinkedIn Profile →
             </a>
           </div>
+        </div>
+      </SectionWrapper>
+
+      {/* ───── LATEST GUIDES ───── */}
+      <SectionWrapper className="pb-16 md:pb-24">
+        <h2 className="text-2xl md:text-4xl font-extrabold text-center tracking-tight mb-8 md:mb-10">Latest Guides</h2>
+        <div className="grid sm:grid-cols-2 gap-4 md:gap-5 max-w-4xl mx-auto">
+          {[
+            { href: "https://blog.tikprofitpro.shop/tiktok-shop-product-research-tool/", title: "How to Research TikTok Shop Products" },
+            { href: "https://blog.tikprofitpro.shop/tiktok-shop-for-beginners-usa-guide-a-practical-approach-to-success/", title: "TikTok Shop for Beginners: A Practical US Guide" },
+            { href: "https://blog.tikprofitpro.shop/best-products-to-sell-on-tiktok-shop/", title: "Best Products to Sell on TikTok Shop" },
+            { href: "https://blog.tikprofitpro.shop/tiktok-shop-vs-amazon-dropshipping-which-is-better-for-us-sellers-in-2026/", title: "TikTok Shop vs Amazon Dropshipping: Which Is Better for US Sellers in 2026?" },
+          ].map((g) => (
+            <a key={g.href} href={g.href}
+              className="p-5 md:p-6 rounded-2xl border border-white/5 bg-[#111] hover:border-[#00ff85]/20 transition-all group block">
+              <h3 className="text-base md:text-lg font-bold mb-2 group-hover:text-[#00ff85] transition-colors">{g.title}</h3>
+              <p className="text-sm" style={{ color: "#00ff85" }}>Read the guide →</p>
+            </a>
+          ))}
         </div>
       </SectionWrapper>
 

@@ -9,7 +9,7 @@ import {
 const faqs = [
   {
     q: "What is TikProfitPro?",
-    a: "TikProfitPro is a TikTok Shop intelligence tool that tracks 1,000+ trending products weekly, scores their virality before they peak, matches them with Alibaba suppliers, and calculates your exact profit margin after TikTok fees.",
+    a: "TikProfitPro is a TikTok Shop intelligence tool that tracks 700+ trending products weekly, scores their virality before they peak, matches them with Alibaba suppliers, and calculates your exact profit margin after TikTok fees.",
   },
   {
     q: "How do I find Alibaba suppliers for TikTok Shop products?",
@@ -21,7 +21,7 @@ const faqs = [
   },
   {
     q: "How much does TikProfitPro cost?",
-    a: "TikProfitPro starts at $39/month with a free plan available. The paid plan includes full access to 1,000+ trending products, virality scores, supplier matching, and profit calculator.",
+    a: "TikProfitPro starts at $39/month with a free plan available. The paid plan includes full access to 700+ trending products, virality scores, supplier matching, and profit calculator.",
   },
 ];
 

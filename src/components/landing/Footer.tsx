@@ -16,7 +16,7 @@ export default function Footer() {
           <Link to="/tutorials" className="hover:text-white transition-colors min-h-[44px] flex items-center">Tutorials</Link>
           <Link to="/calculator" className="hover:text-white transition-colors min-h-[44px] flex items-center">Calculator</Link>
           <Link to="/signup" className="hover:text-white transition-colors min-h-[44px] flex items-center">Sign Up</Link>
-          <a href="https://blog.tikprofitpro.shop" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors min-h-[44px] flex items-center">Blog</a>
+          <a href="https://blog.tikprofitpro.shop/" className="hover:text-white transition-colors min-h-[44px] flex items-center">Blog</a>
           <Link to="/terms" className="hover:text-white transition-colors min-h-[44px] flex items-center">Terms</Link>
           <Link to="/refund" className="hover:text-white transition-colors min-h-[44px] flex items-center">Refund Policy</Link>
         </div>
