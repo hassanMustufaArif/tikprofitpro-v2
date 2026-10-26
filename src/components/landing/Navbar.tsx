@@ -56,7 +56,7 @@ export default function Navbar() {
                 {link.label}
               </a>
             ) : (link as any).external ? (
-              <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer"
+              <a key={link.label} href={link.href}
                 className="text-sm text-[#888] hover:text-white transition-colors">
                 {link.label}
               </a>
@@ -116,7 +116,7 @@ export default function Navbar() {
                     {link.label}
                   </a>
                 ) : (link as any).external ? (
-                  <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer" onClick={() => setMobileOpen(false)}
+                  <a key={link.label} href={link.href} onClick={() => setMobileOpen(false)}
                     className="block py-3 text-base text-[#888] hover:text-white transition-colors min-h-[44px]">
                     {link.label}
                   </a>

@@ -23,7 +23,8 @@ function seoPrerender(): Plugin {
       const template = fs.readFileSync(indexPath, "utf8");
 
       for (const [route, meta] of Object.entries(routeMeta)) {
-        const url = `${SITE}${route}`;
+        // Canonicals and og:url use the domain with a trailing slash (e.g. /calculator/).
+        const url = route === "/" ? SITE : `${SITE}${route}/`;
         let html = template
           .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(meta.title)}</title>`)
           .replace(
@@ -51,11 +52,25 @@ function seoPrerender(): Plugin {
             `<meta name="twitter:description" content="${esc(meta.description)}" />`,
           );
 
-        html = html.replace(
-          "</head>",
-          `  <link rel="canonical" href="${esc(url)}" />\n    <meta property="og:image" content="${esc(OG_IMAGE)}" />\n  </head>`,
-        );
+        const headExtras = [
+          `  <link rel="canonical" href="${esc(url)}" />`,
+          `    <meta property="og:image" content="${esc(OG_IMAGE)}" />`,
+          meta.noindex ? `    <meta name="robots" content="noindex" />` : "",
+        ]
+          .filter(Boolean)
+          .join("\n");
+        html = html.replace("</head>", `${headExtras}\n  </head>`);
 
+        // The homepage-only JSON-LD graph must not ship on other routes.
+        if (route !== "/") {
+          html = html.replace(
+            /<script type="application\/ld\+json" id="ld-home">[\s\S]*?<\/script>\s*/g,
+            "",
+          );
+        }
+
+        // Homepage already has its single <h1> in the static fallback body.
+        const headingTag = route === "/" ? "h2" : "h1";
         const links = Object.entries(routeMeta)
           .filter(([r]) => r !== route)
           .map(([r, m]) => `<li><a href="${r}">${esc(m.heading)}</a></li>`)
@@ -63,7 +78,7 @@ function seoPrerender(): Plugin {
 
         html = html.replace(
           "</body>",
-          `  <noscript><h1>${esc(meta.heading)}</h1><p>${esc(meta.body)}</p><ul>${links}</ul></noscript>\n  </body>`,
+          `  <noscript><${headingTag}>${esc(meta.heading)}</${headingTag}><p>${esc(meta.body)}</p><ul>${links}<li><a href="https://blog.tikprofitpro.shop/">Blog</a></li></ul></noscript>\n  </body>`,
         );
 
         const dir = route === "/" ? outDir : path.join(outDir, route.replace(/^\//, ""));

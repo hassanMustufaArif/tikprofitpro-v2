@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TikProfitPro — TikTok Shop Product Research Tool</title>
-    <meta name="description" content="Find winning TikTok Shop products before they go viral: virality scores, GMV data, verified Alibaba suppliers and an instant profit calculator." />
+    <meta name="description" content="Find trending TikTok Shop products before they go viral. 700+ products updated weekly, a free profit calculator and supplier directory. Free plan, Pro $39/mo." />
     
     <link rel="icon" type="image/svg+xml" href="/tikprofitpro_icon.svg">
     <!-- Google tag (gtag.js) -->
@@ -35,24 +35,39 @@
     
     
 
-    <script type="application/ld+json">
+    <script type="application/ld+json" id="ld-home">
     {
       "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "TikProfitPro",
-      "url": "https://tikprofitpro.shop",
-      "applicationCategory": "BusinessApplication",
-      "description": "TikProfitPro helps TikTok Shop sellers find winning products before they go viral by tracking virality scores, matching Alibaba suppliers, and calculating profit margins automatically.",
-      "offers": {
-        "@type": "Offer",
-        "price": "39",
-        "priceCurrency": "USD"
-      },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "5",
-        "reviewCount": "2400"
-      }
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://tikprofitpro.shop/#org",
+          "name": "TikProfitPro",
+          "url": "https://tikprofitpro.shop/",
+          "email": "support@tikprofitpro.shop"
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://tikprofitpro.shop/#website",
+          "url": "https://tikprofitpro.shop/",
+          "name": "TikProfitPro",
+          "publisher": { "@id": "https://tikprofitpro.shop/#org" }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://tikprofitpro.shop/#app",
+          "name": "TikProfitPro",
+          "description": "TikTok Shop product research tool for US sellers: a weekly-updated database of 700+ trending products, a profit calculator and a supplier directory.",
+          "url": "https://tikprofitpro.shop/",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web",
+          "publisher": { "@id": "https://tikprofitpro.shop/#org" },
+          "offers": [
+            { "@type": "Offer", "name": "Free plan", "price": "0", "priceCurrency": "USD", "url": "https://tikprofitpro.shop/pricing" },
+            { "@type": "Offer", "name": "Pro plan (monthly)", "price": "39", "priceCurrency": "USD", "url": "https://tikprofitpro.shop/pricing" }
+          ]
+        }
+      ]
     }
     </script>
 
@@ -66,7 +81,7 @@
           "name": "What is TikProfitPro?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "TikProfitPro is a TikTok Shop intelligence tool that tracks 1,000+ trending products weekly, scores their virality before they peak, matches them with Alibaba suppliers, and calculates your exact profit margin after TikTok fees."
+            "text": "TikProfitPro is a TikTok Shop intelligence tool that tracks 700+ trending products weekly, scores their virality before they peak, matches them with Alibaba suppliers, and calculates your exact profit margin after TikTok fees."
           }
         },
         {
@@ -90,7 +105,7 @@
           "name": "How much does TikProfitPro cost?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "TikProfitPro starts at $39/month with a free plan available. The paid plan includes full access to 1,000+ trending products, virality scores, supplier matching, and profit calculator."
+            "text": "TikProfitPro starts at $39/month with a free plan available. The paid plan includes full access to 700+ trending products, virality scores, supplier matching, and profit calculator."
           }
         }
       ]
@@ -109,13 +124,13 @@
         </header>
         <section>
           <h2>What is TikProfitPro?</h2>
-          <p>TikProfitPro is a TikTok Shop intelligence tool that tracks 1,000+ trending products weekly, scores their virality before they peak, matches them with Alibaba suppliers, and calculates your exact profit margin after TikTok fees. Trusted by 2,400+ TikTok Shop sellers.</p>
+          <p>TikProfitPro is a TikTok Shop intelligence tool that tracks 700+ trending products weekly, scores their virality before they peak, matches them with Alibaba suppliers, and calculates your exact profit margin after TikTok fees. Trusted by 2,400+ TikTok Shop sellers.</p>
           <img src="/screenshots/dashboard-preview.png" alt="TikProfitPro live dashboard showing trending TikTok Shop products, virality scores, and profit data" style="max-width:100%;border-radius:12px;border:1px solid #333;margin-top:12px;" />
         </section>
         <section>
           <h2>Key Features</h2>
           <ul>
-            <li>Weekly-updated database of 100+ trending TikTok Shop products</li>
+            <li>Weekly-updated database of 700+ trending TikTok Shop products</li>
             <li>Virality scoring to spot winners before they peak</li>
             <li>Automatic Alibaba supplier matching for every trending product</li>
             <li>Built-in profit calculator (accounts for TikTok's 8% commission and 2.9% payment processing fee)</li>
@@ -123,7 +138,7 @@
         </section>
         <section>
           <h2>Pricing</h2>
-          <p>Free plan available. Paid plan starts at $39/month with full access to 1,000+ trending products, virality scores, supplier matching, and the profit calculator.</p>
+          <p>Free plan available. Paid plan starts at $39/month with full access to 700+ trending products, virality scores, supplier matching, and the profit calculator.</p>
         </section>
         <section>
           <h2>Founder</h2>
@@ -142,6 +157,7 @@
               <a href="/suppliers" style="color:#25F4EE;">Supplier Directory</a> &nbsp;|&nbsp;
               <a href="/tutorials" style="color:#25F4EE;">Tutorials</a> &nbsp;|&nbsp;
               <a href="/demo" style="color:#25F4EE;">Watch Demo</a> &nbsp;|&nbsp;
+              <a href="https://blog.tikprofitpro.shop/" style="color:#25F4EE;">Blog</a> &nbsp;|&nbsp;
               <a href="/signup" style="color:#25F4EE;">Sign Up</a> &nbsp;|&nbsp;
               <a href="/login" style="color:#25F4EE;">Log In</a> &nbsp;|&nbsp;
               <a href="/terms" style="color:#25F4EE;">Terms of Service</a> &nbsp;|&nbsp;

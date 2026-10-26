@@ -8,11 +8,13 @@ export default function Seo() {
   const key = pathname !== "/" && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
   const meta = routeMeta[key];
   if (!meta) return null;
-  const url = `${SITE}${key === "/" ? "/" : key}`;
+  // Canonicals use the tikprofitpro.shop domain with a trailing slash (e.g. /calculator/).
+  const url = key === "/" ? SITE : `${SITE}${key}/`;
 
   return (
     <Helmet>
       <title>{meta.title}</title>
+      {meta.noindex && <meta name="robots" content="noindex" />}
       <meta name="description" content={meta.description} />
       <link rel="canonical" href={url} />
       <meta property="og:title" content={meta.title} />
