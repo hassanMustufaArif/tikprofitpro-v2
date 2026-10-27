@@ -71,15 +71,7 @@ const Landing = () => {
           </motion.div>
 
           <motion.div variants={fadeChild} className="flex items-center justify-center gap-3 pt-4">
-            <div className="flex -space-x-2">
-              {["A", "S", "M", "J"].map((l, i) => (
-                <div key={i} className="w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs font-bold border-2"
-                  style={{ background: `hsl(${150 + i * 30}, 50%, ${25 + i * 5}%)`, borderColor: "#080808", color: "#fff" }}>
-                  {l}
-                </div>
-              ))}
-            </div>
-            <span className="text-xs md:text-sm" style={{ color: "#666" }}>Joined by 2,400+ TikTok sellers</span>
+            <span className="text-xs md:text-sm" style={{ color: "#666" }}>Built for US TikTok Shop sellers · Free plan, no card required</span>
           </motion.div>
         </motion.div>
       </section>
