@@ -156,7 +156,7 @@ const Landing = () => {
           {[
             { icon: "🔥", title: "Virality Score Tracking", desc: "Know which products are about to explode before your competition does." },
             { icon: "💰", title: "Profit Calculator", desc: "Instantly calculate net profit after TikTok fees and ad spend." },
-            { icon: "🏭", title: "Supplier Matching", desc: "Find verified suppliers with one click, compare prices and shipping times." },
+            { icon: "🏭", title: "Supplier Matching", desc: "Match products to Alibaba, AliExpress and Amazon listings, then compare unit cost, MOQ and shipping." },
           ].map((f) => (
             <div key={f.title} className="p-6 md:p-8 rounded-2xl border border-white/5 bg-[#111] hover:border-[#00ff85]/20 transition-all group">
               <div className="text-3xl md:text-4xl mb-3 md:mb-4">{f.icon}</div>
@@ -206,7 +206,7 @@ const Landing = () => {
           {[
             { num: "1", icon: "🔍", title: "Browse Trending Products", desc: "Explore 700+ products ranked by virality score, updated weekly." },
             { num: "2", icon: "💰", title: "Calculate Profit Margins", desc: "Instantly see your net profit after all TikTok fees and ad costs." },
-            { num: "3", icon: "🚀", title: "Source & Launch", desc: "Find verified suppliers, place orders, and start selling fast." },
+            { num: "3", icon: "🚀", title: "Source & Launch", desc: "Shortlist suppliers, order samples, and launch once the numbers work." },
           ].map((step) => (
             <div key={step.num} className="text-center relative">
               <div className="w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-base md:text-lg font-bold mx-auto mb-3 md:mb-4 border"

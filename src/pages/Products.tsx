@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Search, Loader2, X, TrendingUp, ShoppingCart, Users, Star,
@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
+import { usePlan } from "@/hooks/usePlan";
+import { calcProfit, DEFAULT_CREATOR_PCT, DEFAULT_REFERRAL_PCT } from "@/lib/fees";
 
 
 const phaseStyles: Record<string, string> = {
@@ -66,6 +68,34 @@ const isNewProduct = (product: any, days: number | null) => {
   return diff <= days;
 };
 
+// Data-quality guards: hide values that are clearly ingestion errors instead of showing them as facts.
+const adSpendValue = (p: any): number | null => {
+  const v = Number(p?.ad_spend);
+  if (!Number.isFinite(v) || v <= 0) return null;
+  // Known ingestion bug: ad_spend sometimes mirrors video_views.
+  if (Number(p?.video_views) > 0 && v === Number(p.video_views)) return null;
+  return v;
+};
+
+const priceLooksWrong = (p: any): boolean => {
+  const price = Number(p?.tiktok_price);
+  if (!Number.isFinite(price) || price <= 0) return true;
+  const gmv = Number(p?.gmv_7d), units = Number(p?.units_sold_7d);
+  if (gmv > 0 && units > 0) {
+    const avg = gmv / units;
+    if (price > avg * 3 || price < avg / 3) return true;
+  }
+  return price >= 1000;
+};
+
+const PriceCell = ({ product }: { product: any }) =>
+  priceLooksWrong(product)
+    ? <span className="text-amber-400" title="This price looks inconsistent with sales data and is being reviewed">${product.tiktok_price ?? "—"} ⚠</span>
+    : <>${product.tiktok_price}</>;
+
+const dash = (v: any, fmt: (n: number) => string = String) =>
+  v === null || v === undefined || v === "" || Number(v) === 0 ? "—" : fmt(Number(v));
+
 const Products = () => {
   const queryClient = useQueryClient();
   const [search,          setSearch]          = useState("");
@@ -114,9 +144,8 @@ const Products = () => {
 
   const productsRaw = products as any;
   const creditInfo  = creditsData?.credits ?? creditsData ?? {};
-  const plan        = productsRaw?.plan ?? creditInfo?.plan ?? "free";
+  const { isFree, label: planLabel } = usePlan();
   const items       = Array.isArray(products) ? products : productsRaw?.products ?? [];
-  const isFree      = plan === "free";
 
   const selectedFilter = TIME_FILTERS.find(f => f.id === timeFilter);
   const selectedFilterDays: number | null = selectedFilter?.days ?? null;
@@ -144,8 +173,14 @@ const Products = () => {
     currentPage * ITEMS_PER_PAGE
   );
 
+  // Each supplier search gets an id; responses from an older search (other product
+  // or platform) are ignored so results never show up under the wrong product.
+  const supplierReq = useRef(0);
+
   const handleFindSupplier = (product: any, e: React.MouseEvent) => {
     e.stopPropagation();
+    supplierReq.current += 1;
+    setSupplierLoading(false);
     setSupplierProduct(product);
     setSupplierPlatform(null);
     setSupplierResults(null);
@@ -153,12 +188,16 @@ const Products = () => {
   };
 
   const handleSearchPlatform = async (platform: string) => {
+    if (!supplierProduct) return;
+    const reqId = ++supplierReq.current;
+    const productId = supplierProduct.id;
     setSupplierPlatform(platform);
     setSupplierLoading(true);
     setSupplierResults(null);
     setSupplierError(null);
     try {
-      const data = await api.getSuppliers(supplierProduct.id, platform);
+      const data = await api.getSuppliers(productId, platform);
+      if (reqId !== supplierReq.current) return;
       if (data?.error?.includes("No credits")) {
         setSupplierError("no_credits");
       } else {
@@ -168,36 +207,22 @@ const Products = () => {
         queryClient.invalidateQueries({ queryKey: ["credits"] });
       }
     } catch (err: any) {
+      if (reqId !== supplierReq.current) return;
       if (err?.message?.includes("403")) setSupplierError("upgrade");
       else if (err?.message?.toLowerCase()?.includes("credit")) setSupplierError("no_credits");
       else setSupplierError(err?.message || "Failed to search suppliers");
     } finally {
-      setSupplierLoading(false);
+      if (reqId === supplierReq.current) setSupplierLoading(false);
     }
   };
 
-  const mockNewShops = [
-    {id:1, shop_name:"TrendHaven Store",   seller_type:"Brand", created_at: new Date(Date.now()-12*86400000).toISOString(), gmv_total:42000,  gmv_growth_pct:340, item_sold:1240, avg_unit_price:33.87, live_revenue:8200, video_revenue:18500, product_card_revenue:6300, self_operated_revenue:12000, affiliate_revenue:15000, shopping_mall_revenue:5500, shop_url:"https://tiktok.com/shop"},
-    {id:2, shop_name:"GadgetPro USA",      seller_type:"Distributor", created_at: new Date(Date.now()-28*86400000).toISOString(), gmv_total:89000,  gmv_growth_pct:210, item_sold:3200, avg_unit_price:27.81, live_revenue:22000, video_revenue:31000, product_card_revenue:12000, self_operated_revenue:28000, affiliate_revenue:35000, shopping_mall_revenue:14000, shop_url:"https://tiktok.com/shop"},
-    {id:3, shop_name:"BeautyBliss Shop",   seller_type:"Brand", created_at: new Date(Date.now()-5*86400000).toISOString(),  gmv_total:18000,  gmv_growth_pct:520, item_sold:680, avg_unit_price:26.47, live_revenue:4200, video_revenue:7800, product_card_revenue:2100, self_operated_revenue:6500, affiliate_revenue:8000, shopping_mall_revenue:1500, shop_url:"https://tiktok.com/shop"},
-    {id:4, shop_name:"HomeEssentials USA", seller_type:"Marketplace", created_at: new Date(Date.now()-45*86400000).toISOString(), gmv_total:127000, gmv_growth_pct:180, item_sold:4800, avg_unit_price:26.46, live_revenue:32000, video_revenue:42000, product_card_revenue:18000, self_operated_revenue:38000, affiliate_revenue:52000, shopping_mall_revenue:17000, shop_url:"https://tiktok.com/shop"},
-    {id:5, shop_name:"FitLife Gear",       seller_type:"Brand", created_at: new Date(Date.now()-20*86400000).toISOString(), gmv_total:63000,  gmv_growth_pct:290, item_sold:2100, avg_unit_price:30.00, live_revenue:14000, video_revenue:22000, product_card_revenue:9000, self_operated_revenue:18000, affiliate_revenue:25000, shopping_mall_revenue:10000, shop_url:"https://tiktok.com/shop"},
-    {id:6, shop_name:"KidsWorld Shop",     seller_type:"Distributor", created_at: new Date(Date.now()-8*86400000).toISOString(),  gmv_total:31000,  gmv_growth_pct:410, item_sold:920, avg_unit_price:33.70, live_revenue:7200, video_revenue:11000, product_card_revenue:4800, self_operated_revenue:9500, affiliate_revenue:12500, shopping_mall_revenue:4000, shop_url:"https://tiktok.com/shop"},
-  ];
-
-  const mockCreators = [
-    { id:1, username:"@shopwithsarah",   creator_type:"UGC",  followers:234000,  engagement_rate:8.4,  avg_views:180000, niche:"Beauty",      contact_email:"sarah@email.com",       ai_content:false, gmv_total:67000,  live_gmv:12000,  video_gmv:48000,  products_promoted:23,  conversion_rate:6.8  },
-    { id:2, username:"@aigadgetreviews", creator_type:"AIGC", followers:89000,   engagement_rate:12.1, avg_views:340000, niche:"Electronics", contact_email:"contact@aigadget.com",  ai_content:true,  gmv_total:198000, live_gmv:0,      video_gmv:178000, products_promoted:61,  conversion_rate:8.1  },
-    { id:3, username:"@tiktokfinds_usa", creator_type:"UGC",  followers:1200000, engagement_rate:6.2,  avg_views:890000, niche:"General",     contact_email:"biz@tiktokfinds.com",   ai_content:false, gmv_total:284000, live_gmv:142000, video_gmv:98000,  products_promoted:47,  conversion_rate:4.2  },
-    { id:4, username:"@aiproductpro",    creator_type:"AIGC", followers:156000,  engagement_rate:15.3, avg_views:520000, niche:"General",     contact_email:"info@aiproductpro.com", ai_content:true,  gmv_total:312000, live_gmv:0,      video_gmv:287000, products_promoted:89,  conversion_rate:11.2 },
-    { id:5, username:"@homewithemily",   creator_type:"UGC",  followers:445000,  engagement_rate:7.8,  avg_views:210000, niche:"Home",        contact_email:"emily@homereviews.com", ai_content:false, gmv_total:94000,  live_gmv:38000,  video_gmv:51000,  products_promoted:31,  conversion_rate:5.4  },
-    { id:6, username:"@fastshopai",      creator_type:"AIGC", followers:312000,  engagement_rate:11.4, avg_views:430000, niche:"Fashion",     contact_email:"info@fastshopai.com",   ai_content:true,  gmv_total:421000, live_gmv:0,      video_gmv:398000, products_promoted:112, conversion_rate:9.7  },
-  ];
+  const closeSupplier = () => { supplierReq.current += 1; setSupplierLoading(false); setSupplierProduct(null); };
 
   const { data: shopsData }    = useQuery({ queryKey: ["shops"],    queryFn: () => api.getShops({ limit: "50", sort_by: "gmv_total" })    });
   const { data: creatorsData } = useQuery({ queryKey: ["creators"], queryFn: () => api.getCreators() });
-  const shops    = shopsData?.shops       ?? mockNewShops;
-  const creators = creatorsData?.creators ?? mockCreators;
+  // No sample/mock data: if the API returns nothing, show an empty state.
+  const shops: any[]    = shopsData?.shops       ?? [];
+  const creators: any[] = creatorsData?.creators ?? [];
 
   const filteredShops = shops
     .filter((s: any) => !shopSearch || (s.shop_name ?? "").toLowerCase().includes(shopSearch.toLowerCase()))
@@ -286,7 +311,7 @@ const Products = () => {
               { label:"Total Products", value:items.length,            icon:"📦", color:"text-primary"    },
               { label:"Trending Now",   value:items.filter((p:any) => p.trend_phase === "hot" || p.trend_phase === "rising").length, icon:"🔥", color:"text-red-400" },
               { label:"New This Month", value:items.filter((p:any) => isNewProduct(p, 30)).length || "—", icon:"⚡", color:"text-green-400" },
-              { label:"Your Plan",      value:isFree ? "Free" : "Pro", icon:"👑", color:"text-amber-400"  },
+              { label:"Your Plan",      value:planLabel, icon:"👑", color:"text-amber-400"  },
             ].map((s,i) => (
               <div key={i} className="rounded-xl border border-border bg-card p-4 hover:border-primary/40 hover:shadow-[0_0_24px_-8px_rgba(0,255,133,0.25)] transition-all">
                 <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1.5"><span className="text-base">{s.icon}</span>{s.label}</div>
@@ -357,13 +382,13 @@ const Products = () => {
                             {product.trend_phase ?? "Stable"}
                           </Badge>
                         </td>
-                        <td className="py-3 px-4 text-muted-foreground font-medium">${product.tiktok_price ?? 0}</td>
+                        <td className="py-3 px-4 text-muted-foreground font-medium"><PriceCell product={product} /></td>
                         <td className="py-3 px-4 text-green-400 font-semibold text-sm">{formatCurrency(product.gmv_7d)}</td>
                         <td className="py-3 px-4 text-muted-foreground text-sm">
                           {product.video_views && product.video_views > 0 ? formatNumber(product.video_views) : <span className="opacity-30">N/A</span>}
                         </td>
                         <td className="py-3 px-4 text-amber-400 text-sm font-medium">
-                          {product.ad_spend && product.ad_spend > 0 ? formatCurrency(product.ad_spend) : <span className="opacity-30">N/A</span>}
+                          {adSpendValue(product) != null ? formatCurrency(adSpendValue(product)!) : <span className="opacity-30">N/A</span>}
                         </td>
                         <td className="py-3 px-4">
                           {product.thumbnail_url ? (
@@ -425,7 +450,7 @@ const Products = () => {
                     <div className="grid grid-cols-3 gap-2 text-xs">
                       <div className="text-center"><div className="text-muted-foreground mb-0.5">Virality</div><div className="font-bold text-primary">{product.virality_score ?? 0}%</div></div>
                       <div className="text-center"><div className="text-muted-foreground mb-0.5">GMV 7d</div><div className="font-bold text-green-400">{formatCurrency(product.gmv_7d)}</div></div>
-                      <div className="text-center"><div className="text-muted-foreground mb-0.5">Price</div><div className="font-bold">${product.tiktok_price ?? 0}</div></div>
+                      <div className="text-center"><div className="text-muted-foreground mb-0.5">Price</div><div className="font-bold"><PriceCell product={product} /></div></div>
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm"
@@ -472,14 +497,6 @@ const Products = () => {
             <div>
               <h2 className="font-semibold text-base">🏪 New Shops on TikTok Shop USA</h2>
               <p className="text-xs text-muted-foreground mt-1">Newly launched shops with high growth velocity</p>
-            </div>
-            <div className="flex gap-2">
-              {["3m","6m","12m"].map(f => (
-                <button key={f} onClick={() => setTimeFilter(f)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                    timeFilter === f ? "bg-primary text-primary-foreground border-primary" : "bg-muted/30 text-muted-foreground border-border"
-                  }`}>Last {f}</button>
-              ))}
             </div>
           </div>
           <div className="flex flex-col md:flex-row gap-3">
@@ -537,6 +554,9 @@ const Products = () => {
                       <td className="py-2 px-4 whitespace-nowrap">{formatCurrency(shop.shopping_mall_revenue ?? 0)}</td>
                     </tr>
                   ))}
+                  {filteredShops.length === 0 && (
+                    <tr><td colSpan={11} className="py-8 text-center text-muted-foreground">No shop data available right now.</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -601,7 +621,7 @@ const Products = () => {
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="font-semibold text-sm">{creator.username}</div>
-                    <div className="text-xs text-muted-foreground">{creator.niche}</div>
+                    <div className="text-xs text-muted-foreground">{creator.niche || "Niche not available"}</div>
                   </div>
                   <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${
                     creator.creator_type === "AIGC" ? "bg-purple-500/15 text-purple-400 border-purple-500/25" : "bg-blue-500/15 text-blue-400 border-blue-500/25"
@@ -612,15 +632,15 @@ const Products = () => {
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div className="text-center bg-muted/30 rounded-lg p-2">
                     <div className="text-muted-foreground mb-0.5">Followers</div>
-                    <div className="font-bold">{formatNumber(creator.followers)}</div>
+                    <div className="font-bold">{dash(creator.followers, formatNumber)}</div>
                   </div>
                   <div className="text-center bg-muted/30 rounded-lg p-2">
                     <div className="text-muted-foreground mb-0.5">Engagement</div>
-                    <div className="font-bold text-green-400">{creator.engagement_rate}%</div>
+                    <div className="font-bold text-green-400">{dash(creator.engagement_rate, v => `${v}%`)}</div>
                   </div>
                   <div className="text-center bg-muted/30 rounded-lg p-2">
                     <div className="text-muted-foreground mb-0.5">Avg Views</div>
-                    <div className="font-bold text-primary">{formatNumber(creator.avg_views)}</div>
+                    <div className="font-bold text-primary">{dash(creator.avg_views, formatNumber)}</div>
                   </div>
                 </div>
 
@@ -648,7 +668,7 @@ const Products = () => {
                       <div className="text-muted-foreground mb-0.5 flex items-center gap-1">
                         🎬 Video GMV
                       </div>
-                      <div className="font-bold text-blue-400">{formatCurrency(creator.video_gmv ?? 0)}</div>
+                      <div className="font-bold text-blue-400">{dash(creator.video_gmv, formatCurrency)}</div>
                     </div>
                   </div>
 
@@ -656,11 +676,11 @@ const Products = () => {
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="bg-muted/30 rounded-lg p-2">
                       <div className="text-muted-foreground mb-0.5">Products</div>
-                      <div className="font-bold text-amber-400">{creator.products_promoted ?? 0}</div>
+                      <div className="font-bold text-amber-400">{dash(creator.products_promoted)}</div>
                     </div>
                     <div className="bg-muted/30 rounded-lg p-2">
                       <div className="text-muted-foreground mb-0.5">Conv. Rate</div>
-                      <div className="font-bold text-primary">{creator.conversion_rate ?? 0}%</div>
+                      <div className="font-bold text-primary">{dash(creator.conversion_rate, v => `${v}%`)}</div>
                     </div>
                   </div>
                 </div>
@@ -681,17 +701,24 @@ const Products = () => {
                         <span className="text-primary">Upgrade →</span>
                       </button>
                     </Link>
-                  ) : (
+                  ) : creator.contact_email && creator.contact_email !== "null" ? (
                     <a href={`mailto:${creator.contact_email}`}
                       className="block w-full text-center px-3 py-2 rounded-lg border border-primary/30 bg-primary/10 text-xs text-primary hover:bg-primary/20 transition-colors min-h-[44px] flex items-center justify-center">
                       Contact Creator →
                     </a>
+                  ) : (
+                    <div className="w-full text-center px-3 py-2 rounded-lg border border-border text-xs text-muted-foreground min-h-[44px] flex items-center justify-center">
+                      No public contact yet
+                    </div>
                   )}
                 </div>
 
               </div>
             ))}
           </div>
+          {filteredCreators.length === 0 && (
+            <p className="py-8 text-center text-sm text-muted-foreground">No creator data available right now.</p>
+          )}
           {isFree && (
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5 text-center space-y-3">
               <div className="text-2xl">🔒</div>
@@ -772,14 +799,14 @@ const Products = () => {
 
       {/* ══ SUPPLIER MODAL ══ */}
       {supplierProduct && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end md:items-center justify-center md:p-4" onClick={() => setSupplierProduct(null)}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end md:items-center justify-center md:p-4" onClick={closeSupplier}>
           <div className="bg-card border border-border rounded-t-2xl md:rounded-2xl w-full md:max-w-lg max-h-[95vh] md:max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 md:p-6 border-b border-border sticky top-0 bg-card z-10">
               <div className="min-w-0">
                 <h2 className="font-semibold text-base">Find Supplier</h2>
                 <p className="text-xs text-muted-foreground mt-1 truncate">{supplierProduct.product_name}</p>
               </div>
-              <button onClick={() => setSupplierProduct(null)} className="text-muted-foreground hover:text-foreground p-2 -mr-2 min-h-[44px] min-w-[44px] flex items-center justify-center">
+              <button onClick={closeSupplier} className="text-muted-foreground hover:text-foreground p-2 -mr-2 min-h-[44px] min-w-[44px] flex items-center justify-center">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -806,22 +833,28 @@ const Products = () => {
               {supplierError && !["upgrade","no_credits"].includes(supplierError) && <p className="text-center text-sm text-destructive py-4">{supplierError}</p>}
               {supplierResults && supplierResults.length > 0 && (
                 <div className="space-y-3 mt-2">
-                  <p className="text-xs text-muted-foreground font-medium">Top {supplierResults.length} suppliers:</p>
+                  <p className="text-xs text-muted-foreground font-medium">Top {supplierResults.length} possible matches. Check the product photos and specs, and order a sample before buying in bulk.</p>
                   {supplierResults.map((s: any, i: number) => {
-                    const rc = s._profit?.rating === "green" ? "text-green-400" : s._profit?.rating === "amber" ? "text-amber-400" : "text-red-400";
+                    // Recompute with the same fee model as the calculator so numbers are consistent.
+                    const unit = Number(s.unit_cost_min);
+                    const est = Number.isFinite(unit) && unit > 0 && !priceLooksWrong(supplierProduct)
+                      ? calcProfit({ sellingPrice: Number(supplierProduct.tiktok_price), productCost: unit, referralPct: DEFAULT_REFERRAL_PCT, creatorPct: DEFAULT_CREATOR_PCT })
+                      : null;
+                    const rc = !est ? "text-muted-foreground" : est.margin >= 30 ? "text-green-400" : est.margin >= 15 ? "text-amber-400" : "text-red-400";
+                    const profitLabel = !est ? "Check price" : est.margin >= 30 ? "Strong margin" : est.margin >= 15 ? "Thin margin" : "Low margin";
                     return (
                       <div key={i} className="rounded-xl border border-border bg-muted/20 p-4 space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium truncate max-w-[70%]">{s.supplier_name || s.name || `Supplier ${i+1}`}</span>
-                          <span className={`text-xs font-semibold ${rc}`}>{s._profit?.profit_label || "—"}</span>
+                          <span className={`text-xs font-semibold ${rc}`}>{profitLabel}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                           <div>Unit Cost: <span className="text-foreground font-medium">${s.unit_cost_min ?? "—"}</span></div>
                           <div>MOQ: <span className="text-foreground font-medium">{s.moq ?? "—"}</span></div>
-                          <div>Shipping: <span className="text-foreground font-medium">{s.shipping_estimate_days ?? "—"} days</span></div>
-                          <div>Profit: <span className="text-foreground font-medium">${s._profit?.net_profit ?? "—"}</span></div>
+                          <div>Shipping: <span className="text-foreground font-medium">{s.shipping_estimate_days != null ? `${s.shipping_estimate_days} days` : "—"}</span></div>
+                          <div>Est. profit/unit: <span className="text-foreground font-medium">{est ? `$${est.profitPerUnit.toFixed(2)}` : "—"}</span></div>
                         </div>
-                        {s._profit?.margin_pct != null && <div className="text-xs">Margin: <span className={`font-semibold ${rc}`}>{s._profit.margin_pct}%</span></div>}
+                        {est && <div className="text-xs">Margin: <span className={`font-semibold ${rc}`}>{est.margin.toFixed(1)}%</span> <span className="text-muted-foreground">(after 6% TikTok fee + 15% creator, before shipping)</span></div>}
                         {s.supplier_url && (
                           <a
                             href={s.supplier_url}
@@ -872,11 +905,11 @@ const Products = () => {
             <div className="grid grid-cols-2 gap-3 md:gap-4 p-4 md:p-6">
               {[
                 { label:"Virality Score", icon:<TrendingUp className="h-3 w-3"/>, value:`${selectedProduct.virality_score ?? 0}%`, color:"text-primary", bar:true },
-                { label:"TikTok Price",   icon:<ShoppingCart className="h-3 w-3"/>, value:`$${selectedProduct.tiktok_price}`, color:"", bar:false },
+                { label:"TikTok Price",   icon:<ShoppingCart className="h-3 w-3"/>, value:priceLooksWrong(selectedProduct) ? `$${selectedProduct.tiktok_price ?? "—"} ⚠ under review` : `$${selectedProduct.tiktok_price}`, color:"", bar:false },
                 { label:"GMV 7 Days",     icon:<DollarSign className="h-3 w-3"/>, value:formatCurrency(selectedProduct.gmv_7d), color:"text-green-400", bar:false },
                 { label:"Units Sold 7d",  icon:<ShoppingCart className="h-3 w-3"/>, value:formatNumber(selectedProduct.units_sold_7d), color:"", bar:false },
                 { label:"Video Views",    icon:<Eye className="h-3 w-3"/>, value:selectedProduct.video_views > 0 ? formatNumber(selectedProduct.video_views) : "N/A", color:"text-blue-400", bar:false },
-                { label:"Ad Spend",       icon:<DollarSign className="h-3 w-3"/>, value:selectedProduct.ad_spend > 0 ? formatCurrency(selectedProduct.ad_spend) : "N/A", color:"text-amber-400", bar:false },
+                { label:"Ad Spend",       icon:<DollarSign className="h-3 w-3"/>, value:adSpendValue(selectedProduct) != null ? formatCurrency(adSpendValue(selectedProduct)!) : "N/A", color:"text-amber-400", bar:false },
                 { label:"Creators",       icon:<Users className="h-3 w-3"/>, value:formatNumber(selectedProduct.creator_count), color:"", bar:false },
                 { label:"Reviews",        icon:<Star className="h-3 w-3"/>, value:formatNumber(selectedProduct.review_count), color:"", bar:false },
               ].map((m,i) => (

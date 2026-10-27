@@ -1,8 +1,16 @@
 export const suppliers = [
   {
+    emoji: "🏭",
+    name: "Alibaba",
+    url: "https://www.alibaba.com",
+    category: "OEM / White-label",
+    shipping: "Varies by supplier",
+    minOrder: "Varies (MOQ per listing)",
+  },
+  {
     emoji: "🛒",
     name: "AliExpress",
-    url: "https://aliexpress.com",
+    url: "https://www.aliexpress.com",
     category: "General",
     shipping: "10–20 days",
     minOrder: "No minimum",

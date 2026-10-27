@@ -16,6 +16,7 @@ import { useCheckout } from "@/hooks/useCheckout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { usePlan } from "@/hooks/usePlan";
 
 const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -29,20 +30,7 @@ export function AppSidebar() {
   const { checkout, loading } = useCheckout();
   const { user } = useAuth();
 
-  const { data: userPlanData } = useQuery({
-    queryKey: ["user-plan-sidebar", user?.id],
-    queryFn: async () => {
-      if (!user?.email) return null;
-      const { data } = await supabase
-        .from("users")
-        .select("plan")
-        .eq("user_email", user.email)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!user?.email,
-  });
-  const isPaid = userPlanData?.plan === "pro" || userPlanData?.plan === "ultimate";
+  const { isPaid } = usePlan();
 
   return (
     <Sidebar collapsible="icon">

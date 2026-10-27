@@ -9,8 +9,8 @@ const Suppliers = () => (
 
     <section className="pt-32 pb-24 max-w-5xl mx-auto px-6">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
-        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">Supplier Directory</h1>
-        <p style={{ color: "#888" }}>Verified suppliers for every product category</p>
+        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">Where to Source</h1>
+        <p style={{ color: "#888" }}>Popular sourcing marketplaces for TikTok Shop sellers. These are platforms, not vetted suppliers: always check reviews, order a sample and confirm specs before buying in bulk.</p>
       </motion.div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -27,7 +27,7 @@ const Suppliers = () => (
             </div>
             <a href={s.url} target="_blank" rel="noreferrer"
               className="inline-flex items-center gap-1 text-sm font-semibold transition-colors hover:underline" style={{ color: "#00ff85" }}>
-              Visit Supplier →
+              Visit {s.name} →
             </a>
           </motion.div>
         ))}

@@ -1,145 +1,123 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/contexts/AuthContext";
-import { Calculator, Loader2 } from "lucide-react";
+import { Calculator } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { api } from "@/lib/api";
+import { calcProfit, DEFAULT_CREATOR_PCT, DEFAULT_REFERRAL_PCT } from "@/lib/fees";
 
-interface ProfitResult {
-  revenue?: number;
-  total_cost?: number;
-  profit?: number;
-  margin?: number;
-  [key: string]: any;
-}
+const FIELDS: { id: keyof FormState; label: string; placeholder: string; hint?: string }[] = [
+  { id: "selling_price", label: "Selling Price ($)", placeholder: "24.99" },
+  { id: "product_cost", label: "Product Cost per Unit ($)", placeholder: "5.00", hint: "Supplier unit price plus packaging" },
+  { id: "shipping_cost", label: "Shipping per Unit ($)", placeholder: "4.50", hint: "Label or fulfillment cost you pay" },
+  { id: "referral_fee", label: "TikTok Referral Fee (%)", placeholder: "6", hint: "6% for most US categories, 5% for select jewelry and pre-owned. Payment processing is included." },
+  { id: "creator_pct", label: "Creator Commission (%)", placeholder: "15", hint: "Affiliate commission you offer creators. Use 0 if you sell without creators." },
+  { id: "ad_cost", label: "Ad Cost per Unit ($)", placeholder: "0", hint: "Average ad spend per sale, if you run ads" },
+  { id: "quantity", label: "Quantity", placeholder: "1" },
+];
+
+type FormState = {
+  selling_price: string; product_cost: string; shipping_cost: string;
+  referral_fee: string; creator_pct: string; ad_cost: string; quantity: string;
+};
+
+const money = (v: number) => `${v < 0 ? "-" : ""}$${Math.abs(v).toFixed(2)}`;
 
 const ProfitCalculatorContent = () => {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
+    selling_price: "",
     product_cost: "",
     shipping_cost: "",
-    selling_price: "",
-    referral_fee: "",
+    referral_fee: String(DEFAULT_REFERRAL_PCT),
+    creator_pct: String(DEFAULT_CREATOR_PCT),
+    ad_cost: "0",
     quantity: "1",
   });
-  const [result, setResult] = useState<ProfitResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  const update = (field: string, value: string) =>
+  const update = (field: keyof FormState, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const calculate = async () => {
-    setLoading(true);
-    setError("");
-    setResult(null);
-    try {
-      const sellingPrice = parseFloat(form.selling_price) || 0;
-      const productCost = parseFloat(form.product_cost) || 0;
-      const shippingCost = parseFloat(form.shipping_cost) || 0;
-      const referralPct = parseFloat(form.referral_fee) || 0;
-      const quantity = parseFloat(form.quantity) || 1;
+  const hasInput = parseFloat(form.selling_price) > 0;
+  const r = useMemo(() => calcProfit({
+    sellingPrice: parseFloat(form.selling_price),
+    productCost: parseFloat(form.product_cost),
+    shippingCost: parseFloat(form.shipping_cost),
+    referralPct: parseFloat(form.referral_fee),
+    creatorPct: parseFloat(form.creator_pct),
+    adCostPerUnit: parseFloat(form.ad_cost),
+    quantity: parseFloat(form.quantity),
+  }), [form]);
 
-      const tiktokFee = sellingPrice * (referralPct / 100);
-      const profitPerUnit = sellingPrice - tiktokFee - productCost - shippingCost;
-      const totalProfit = profitPerUnit * quantity;
-      const totalRevenue = sellingPrice * quantity;
-      const totalCost = (productCost + shippingCost + tiktokFee) * quantity;
-      const margin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
-
-      setResult({
-        revenue: totalRevenue,
-        tiktok_fee: tiktokFee * quantity,
-        total_cost: totalCost,
-        profit: totalProfit,
-        margin,
-      });
-    } catch (err: any) {
-      setError(err?.message || "Calculation failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const rows = [
+    { label: "Revenue", value: money(r.revenue) },
+    { label: "Product cost", value: money(-r.productCost) },
+    { label: "Shipping", value: money(-r.shippingCost) },
+    { label: "TikTok referral fee", value: money(-r.referralFee) },
+    { label: "Creator commission", value: money(-r.creatorCommission) },
+    { label: "Ads", value: money(-r.adCost) },
+  ];
 
   return (
     <div className="space-y-6 animate-slide-up pb-20 md:pb-6">
       <div>
         <h1 className="text-xl md:text-2xl font-bold tracking-tight">Profit Calculator</h1>
-        <p className="text-muted-foreground mt-1 text-sm">Calculate margins and estimate profits</p>
+        <p className="text-muted-foreground mt-1 text-sm">TikTok Shop US fees, creator commission and ads in one place. Results update as you type.</p>
       </div>
 
       <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
-        {/* Input Form */}
         <div className="rounded-xl border border-border bg-card p-4 md:p-6 space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <Calculator className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold text-sm md:text-base">Input Details</h2>
+            <h2 className="font-semibold text-sm md:text-base">Your numbers</h2>
           </div>
-
           <div className="space-y-3">
-            <div>
-              <Label htmlFor="product_cost">Product Cost ($)</Label>
-              <Input id="product_cost" type="number" placeholder="0.00" value={form.product_cost} onChange={(e) => update("product_cost", e.target.value)} className="mt-1 bg-background min-h-[44px]" />
-            </div>
-            <div>
-              <Label htmlFor="shipping_cost">Shipping Cost ($)</Label>
-              <Input id="shipping_cost" type="number" placeholder="0.00" value={form.shipping_cost} onChange={(e) => update("shipping_cost", e.target.value)} className="mt-1 bg-background min-h-[44px]" />
-            </div>
-            <div>
-              <Label htmlFor="selling_price">Selling Price ($)</Label>
-              <Input id="selling_price" type="number" placeholder="0.00" value={form.selling_price} onChange={(e) => update("selling_price", e.target.value)} className="mt-1 bg-background min-h-[44px]" />
-            </div>
-            <div>
-              <Label htmlFor="referral_fee">TikTok Referral Fee (%)</Label>
-              <Input id="referral_fee" type="number" placeholder="e.g. 6 for most categories, 5 for jewelry" value={form.referral_fee} onChange={(e) => update("referral_fee", e.target.value)} className="mt-1 bg-background min-h-[44px]" />
-              <p className="text-xs text-muted-foreground mt-1">TikTok charges 6% for most categories, 5% for select jewelry items</p>
-            </div>
-            <div>
-              <Label htmlFor="quantity">Quantity</Label>
-              <Input id="quantity" type="number" placeholder="1" value={form.quantity} onChange={(e) => update("quantity", e.target.value)} className="mt-1 bg-background min-h-[44px]" />
-            </div>
+            {FIELDS.map((f) => (
+              <div key={f.id}>
+                <Label htmlFor={f.id}>{f.label}</Label>
+                <Input id={f.id} type="number" inputMode="decimal" placeholder={f.placeholder} value={form[f.id]}
+                  onChange={(e) => update(f.id, e.target.value)} className="mt-1 bg-background min-h-[44px]" />
+                {f.hint && <p className="text-xs text-muted-foreground mt-1">{f.hint}</p>}
+              </div>
+            ))}
           </div>
-
-          <Button onClick={calculate} disabled={loading} className="w-full mt-2 min-h-[44px]">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Calculate Profit"}
-          </Button>
-
-          {error && (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-center text-sm text-destructive">
-              {error}
-            </div>
-          )}
         </div>
 
-        {/* Results */}
         <div className="rounded-xl border border-border bg-card p-4 md:p-6">
           <h2 className="font-semibold mb-4 text-sm md:text-base">Results</h2>
-          {result ? (
-            <div className="space-y-4">
-              {[
-                { label: "Revenue", value: result.revenue, prefix: "$" },
-                { label: "TikTok Referral Fee", value: result.tiktok_fee, prefix: "-$" },
-                { label: "Total Cost", value: result.total_cost, prefix: "$" },
-                { label: "Profit", value: result.profit, prefix: "$", highlight: true },
-                { label: "Margin", value: result.margin, suffix: "%" },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                  <span className="text-sm text-muted-foreground">{item.label}</span>
-                  <span className={`text-base md:text-lg font-semibold ${item.highlight ? (Number(item.value) >= 0 ? "text-success" : "text-destructive") : ""}`}>
-                    {item.value != null
-                      ? `${item.prefix ?? ""}${Number(item.value).toFixed(2)}${item.suffix ?? ""}`
-                      : "—"}
-                  </span>
+          {hasInput ? (
+            <div className="space-y-1">
+              {rows.map((row) => (
+                <div key={row.label} className="flex items-center justify-between py-2 border-b border-border">
+                  <span className="text-sm text-muted-foreground">{row.label}</span>
+                  <span className="text-sm md:text-base font-medium tabular-nums">{row.value}</span>
                 </div>
               ))}
+              <div className="flex items-center justify-between py-3 border-b border-border">
+                <span className="text-sm font-semibold">Net profit</span>
+                <span className={`text-lg md:text-xl font-bold tabular-nums ${r.profit >= 0 ? "text-success" : "text-destructive"}`}>{money(r.profit)}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 pt-3 text-center">
+                <div className="rounded-lg bg-muted/30 p-2">
+                  <div className="text-xs text-muted-foreground">Per unit</div>
+                  <div className="font-semibold tabular-nums">{money(r.profitPerUnit)}</div>
+                </div>
+                <div className="rounded-lg bg-muted/30 p-2">
+                  <div className="text-xs text-muted-foreground">Margin</div>
+                  <div className="font-semibold tabular-nums">{r.margin.toFixed(1)}%</div>
+                </div>
+                <div className="rounded-lg bg-muted/30 p-2">
+                  <div className="text-xs text-muted-foreground">Break-even price</div>
+                  <div className="font-semibold tabular-nums">{r.breakEvenPrice != null ? money(r.breakEvenPrice) : "—"}</div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground pt-3">Estimates only. Sales tax is excluded. Confirm your category rate on your TikTok Shop settlement statement.</p>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-8 md:py-12 text-center text-muted-foreground">
               <Calculator className="h-8 w-8 md:h-10 md:w-10 mb-3 opacity-40" />
-              <p className="text-sm">Enter your product details and click Calculate to see results.</p>
+              <p className="text-sm">Enter a selling price to see your profit.</p>
             </div>
           )}
         </div>
