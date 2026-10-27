@@ -36,6 +36,8 @@ export const api = {
   getSuppliers: (product_id: string, platform: string) =>
     apiFetch(`/products/${product_id}/suppliers/${platform}`),
   getCredits: () => apiFetch("/credits"),
+  generateListing: (data: { product_name: string; price: number; category: string; image_url?: string }) =>
+    apiFetch("/generate-listing", { method: "POST", body: JSON.stringify(data) }),
   getShops: (params?: Record<string, string>) =>
     apiFetch(`/shops?${new URLSearchParams(params)}`),
   getCreators: (params?: Record<string, string>) =>
