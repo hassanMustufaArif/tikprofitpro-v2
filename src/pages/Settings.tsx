@@ -4,25 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { usePlan } from "@/hooks/usePlan";
 
 const SettingsPage = () => {
   const { user, signOut } = useAuth();
 
-  const { data: userData } = useQuery({
-    queryKey: ["user-settings", user?.id],
-    queryFn: async () => {
-      if (!user?.email) return null;
-      const { data } = await supabase
-        .from("users")
-        .select("plan")
-        .eq("user_email", user.email)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!user?.email,
-  });
-
-  const plan = userData?.plan ?? "free";
+  const { plan } = usePlan();
   const isPaid = plan === "pro" || plan === "ultimate";
 
   return (
