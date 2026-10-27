@@ -13,11 +13,11 @@ const faqs = [
   },
   {
     q: "How do I find Alibaba suppliers for TikTok Shop products?",
-    a: "TikProfitPro automatically searches Alibaba for every trending TikTok Shop product, calculates profit margin after TikTok's 8% commission and payment fees, and saves the top 3 most profitable suppliers for you.",
+    a: "Click Source on any trending product and TikProfitPro searches Alibaba, AliExpress and Amazon for matching listings, then estimates your margin after TikTok's referral fee and creator commission. Always order a sample and confirm specs with the supplier before buying in bulk.",
   },
   {
     q: "How is TikTok Shop profit margin calculated?",
-    a: "TikTok Shop profit margin = Selling Price minus Supplier Cost minus TikTok's 8% commission minus 2.9% payment processing fee. TikProfitPro calculates this automatically for every product.",
+    a: "Profit = Selling Price minus product cost, shipping, TikTok's referral fee (6% for most US categories, 5% for select jewelry and pre-owned), creator commission and ad cost. In the US, payment processing is included in the referral fee, so there is no separate 2.9% charge. Margin = Profit divided by Selling Price.",
   },
   {
     q: "How much does TikProfitPro cost?",
