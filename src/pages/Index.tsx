@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCheckout } from "@/hooks/useCheckout";
+import { usePlan } from "@/hooks/usePlan";
 
 const iconMap = {
   total_products: Package,
@@ -56,20 +57,7 @@ const Dashboard = () => {
   const stats = statsData?.stats ?? {};
   const { checkout, loading: checkoutLoading } = useCheckout();
 
-  const { data: userPlanData } = useQuery({
-    queryKey: ["user-plan-dashboard"],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.email) return null;
-      const { data } = await supabase
-        .from("users")
-        .select("plan")
-        .eq("user_email", session.user.email)
-        .maybeSingle();
-      return data;
-    },
-  });
-  const plan = userPlanData?.plan ?? productsData?.plan ?? statsData?.plan ?? "free";
+  const { plan } = usePlan();
   const statKeys = ["total_products", "hot", "rising", "watch"];
 
   const rawProducts = Array.isArray(productsData) ? productsData : productsData?.products ?? [];
