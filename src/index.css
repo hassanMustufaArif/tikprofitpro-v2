@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,56 +6,56 @@
 
 @layer base {
   :root {
-    --background: 220 20% 7%;
+    --background: 220 13% 5%;
     --foreground: 210 20% 92%;
 
-    --card: 220 18% 10%;
+    --card: 216 11% 8%;
     --card-foreground: 210 20% 92%;
 
-    --popover: 220 18% 10%;
+    --popover: 216 11% 8%;
     --popover-foreground: 210 20% 92%;
 
-    --primary: 174 72% 50%;
-    --primary-foreground: 220 20% 7%;
+    --primary: 151 100% 45%;
+    --primary-foreground: 150 60% 4%;
 
-    --secondary: 220 16% 14%;
+    --secondary: 216 9% 12%;
     --secondary-foreground: 210 20% 80%;
 
-    --muted: 220 14% 16%;
-    --muted-foreground: 215 15% 52%;
+    --muted: 216 8% 13%;
+    --muted-foreground: 216 6% 57%;
 
-    --accent: 174 72% 50%;
-    --accent-foreground: 220 20% 7%;
+    --accent: 151 100% 45%;
+    --accent-foreground: 150 60% 4%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 220 14% 18%;
-    --input: 220 14% 18%;
-    --ring: 174 72% 50%;
+    --border: 216 8% 15%;
+    --input: 216 8% 15%;
+    --ring: 151 100% 45%;
 
-    --radius: 0.625rem;
+    --radius: 0.5rem;
 
-    --sidebar-background: 220 20% 5%;
+    --sidebar-background: 220 13% 4%;
     --sidebar-foreground: 215 15% 52%;
-    --sidebar-primary: 174 72% 50%;
+    --sidebar-primary: 151 100% 45%;
     --sidebar-primary-foreground: 220 20% 7%;
-    --sidebar-accent: 220 16% 12%;
+    --sidebar-accent: 216 9% 10%;
     --sidebar-accent-foreground: 210 20% 92%;
-    --sidebar-border: 220 14% 14%;
-    --sidebar-ring: 174 72% 50%;
+    --sidebar-border: 216 8% 12%;
+    --sidebar-ring: 151 100% 45%;
 
     /* Custom tokens */
-    --success: 152 60% 48%;
+    --success: 151 80% 45%;
     --success-foreground: 220 20% 7%;
     --warning: 38 92% 55%;
     --warning-foreground: 220 20% 7%;
     --info: 210 80% 58%;
     --info-foreground: 220 20% 7%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(174, 72%, 50%), hsl(190, 80%, 42%));
+    --gradient-primary: linear-gradient(135deg, hsl(151, 100%, 45%), hsl(160, 90%, 38%));
     --gradient-card: linear-gradient(145deg, hsl(220, 18%, 11%), hsl(220, 18%, 9%));
-    --shadow-glow: 0 0 20px hsl(174 72% 50% / 0.15);
+    --shadow-glow: 0 0 20px hsl(151 100% 45% / 0.12);
   }
 
   * {
@@ -64,6 +64,30 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "cv11", "ss01";
   }
+
+  /* Numbers line up in every table and stat */
+  table, .tabular { font-variant-numeric: tabular-nums; }
+}
+
+@layer components {
+  /* Marketing design system (landing, pricing, public pages) */
+  .mk-page { background: #0A0B0D; color: #EDEEF0; }
+  .mk-container { @apply max-w-6xl mx-auto px-5 md:px-8; }
+  .mk-eyebrow { @apply text-[12px] font-medium uppercase tracking-[0.14em]; color: #00E676; }
+  .mk-h1 { @apply text-[40px] leading-[1.04] sm:text-[56px] md:text-[72px] font-semibold tracking-[-0.035em]; }
+  .mk-h2 { @apply text-[30px] leading-[1.1] md:text-[44px] font-semibold tracking-[-0.03em]; }
+  .mk-lead { @apply text-[17px] md:text-[19px] leading-relaxed; color: #9BA1AB; }
+  .mk-muted { color: #8A9099; }
+  .mk-card { @apply rounded-2xl border; background: #111316; border-color: rgba(255,255,255,0.07); }
+  .mk-card-hover { @apply transition-colors; }
+  .mk-card-hover:hover { border-color: rgba(255,255,255,0.14); }
+  .mk-btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 h-11 text-[15px] font-semibold transition-colors; background: #00E676; color: #04110A; }
+  .mk-btn-primary:hover { background: #33EB8F; }
+  .mk-btn-secondary { @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 h-11 text-[15px] font-medium border transition-colors; border-color: rgba(255,255,255,0.12); color: #EDEEF0; background: rgba(255,255,255,0.02); }
+  .mk-btn-secondary:hover { background: rgba(255,255,255,0.06); }
+  .mk-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .mk-divider { border-color: rgba(255,255,255,0.07); }
 }
