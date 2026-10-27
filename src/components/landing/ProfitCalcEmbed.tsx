@@ -18,16 +18,16 @@ export default function ProfitCalcEmbed() {
     const netAfterAds = after.profit;
     const margin = before.margin;
     const roi = adSpend > 0 ? (netAfterAds / adSpend) * 100 : 0;
-    const marginColor = margin > 20 ? "#00ff85" : margin >= 10 ? "#ffbb00" : "#ff4444";
+    const marginColor = margin > 20 ? "#067647" : margin >= 10 ? "#B54708" : "#D92D20";
     return { gross, tiktokFee: fees, netAfterFees, netAfterAds, margin, roi, marginColor };
   }, [cost, price, fee, creator, adSpend]);
 
   const inputClass =
-    "w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white text-lg focus:outline-none focus:border-[#00ff85]/50 transition-colors";
+    "w-full mk-num bg-white border border-[#E4E4E7] rounded-xl px-4 h-12 text-[#0B0B0C] text-[16px] focus:outline-none focus:border-[#0B0B0C] focus:ring-4 focus:ring-black/5 transition";
 
   return (
-    <div className="grid md:grid-cols-2 gap-8">
-      <div className="space-y-5">
+    <div className="grid md:grid-cols-2 gap-6 md:gap-10">
+      <div className="space-y-4">
         {[
           { label: "Product Cost ($)", value: cost, set: setCost },
           { label: "TikTok Sale Price ($)", value: price, set: setPrice },
@@ -36,7 +36,7 @@ export default function ProfitCalcEmbed() {
           { label: "Ad Cost per Sale ($)", value: adSpend, set: setAdSpend },
         ].map((input) => (
           <div key={input.label}>
-            <label className="text-sm text-[#888] mb-2 block">{input.label}</label>
+            <label className="text-[13px] font-medium text-[#2A2C30] mb-1.5 block">{input.label}</label>
             <input
               type="number"
               value={input.value}
@@ -47,7 +47,7 @@ export default function ProfitCalcEmbed() {
         ))}
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-2">
         {[
           { label: "Gross Profit", value: results.gross, prefix: "$" },
           { label: "TikTok Fee + Creator Commission", value: results.tiktokFee, prefix: "$", negative: true },
@@ -58,19 +58,19 @@ export default function ProfitCalcEmbed() {
         ].map((r) => (
           <motion.div
             key={r.label}
-            className="flex items-center justify-between p-4 rounded-xl bg-[#0a0a0a] border border-white/5"
+            className="flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#F7F7F8]"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
           >
-            <span className="text-sm text-[#888]">{r.label}</span>
+            <span className="text-[14px] text-[#55595F]">{r.label}</span>
             <span
-              className="text-xl font-bold"
+              className="mk-num text-[18px] font-semibold"
               style={{
                 color: (r as any).forceColor
                   ? (r as any).forceColor
                   : r.value < 0
-                    ? "#ff4444"
-                    : "#00ff85",
+                    ? "#D92D20"
+                    : "#0B0B0C",
               }}
             >
               {r.prefix}

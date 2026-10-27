@@ -1,392 +1,386 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { ArrowRight, ArrowUpRight, Check, Star, TrendingUp, Factory, PlayCircle } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
-import SectionWrapper from "@/components/landing/SectionWrapper";
 import ProfitCalcEmbed from "@/components/landing/ProfitCalcEmbed";
 import FAQSection from "@/components/landing/FAQSection";
+import HeroProductMock from "@/components/landing/HeroProductMock";
+import StageBadge, { STAGE_COLORS } from "@/components/landing/StageBadge";
+import Sparkline from "@/components/landing/Sparkline";
 import { useCheckout } from "@/hooks/useCheckout";
 
-const fadeChild = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+const fade = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
 };
-const stagger = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.12 } },
-};
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
+
+const Reveal = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-60px" }}
+    transition={{ duration: 0.5, ease: "easeOut" }} className={className}>
+    {children}
+  </motion.div>
+);
+
+const PLANS = [
+  { name: "Free", price: "$0", period: "forever", cta: "Start free", to: "/pricing#free",
+    features: ["Top 10 trending products", "Basic virality scores", "Dashboard overview", "Profit calculator"] },
+  { name: "Pro", price: "$39", period: "/month", cta: "Start Pro", to: "/pricing", featured: true,
+    features: ["All 700+ trending products", "Advanced virality scores", "50 sourcing credits a month", "Alibaba, AliExpress and Amazon matching", "Full product stats", "Weekly updated rankings"] },
+  { name: "Ultimate", price: "$99", period: "/month", cta: "Start Ultimate", ultimate: true,
+    features: ["Everything in Pro", "120 sourcing credits a month", "Priority support", "Early access to new features"] },
+];
+
+const GUIDES = [
+  { href: "https://blog.tikprofitpro.shop/tiktok-shop-product-research-tool/", title: "How to research TikTok Shop products", tag: "Research" },
+  { href: "https://blog.tikprofitpro.shop/tiktok-shop-for-beginners-usa-guide-a-practical-approach-to-success/", title: "TikTok Shop for beginners: a practical US guide", tag: "Getting started" },
+  { href: "https://blog.tikprofitpro.shop/best-products-to-sell-on-tiktok-shop/", title: "Best products to sell on TikTok Shop", tag: "Products" },
+  { href: "https://blog.tikprofitpro.shop/tiktok-shop-vs-amazon-dropshipping-which-is-better-for-us-sellers-in-2026/", title: "TikTok Shop vs Amazon dropshipping in 2026", tag: "Strategy" },
+];
 
 const Landing = () => {
   const { checkout, loading: checkoutLoading } = useCheckout();
 
   return (
-    <div className="min-h-screen pb-20 md:pb-0" style={{ background: "#080808", color: "#e8e8e8" }}>
-      {/* Grid BG */}
-      <div className="fixed inset-0 pointer-events-none z-0"
-        style={{ backgroundImage: "linear-gradient(rgba(0,255,133,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,133,0.025) 1px, transparent 1px)", backgroundSize: "70px 70px" }} />
+    <div className="mk-page min-h-screen overflow-x-hidden">
+      <Navbar variant="light" />
 
-      <Navbar />
+      {/* ───── HERO: split, text left, photo card right ───── */}
+      <section className="pt-24 md:pt-28 pb-10">
+        <div className="mk-container">
+          <div className="grid gap-6 lg:grid-cols-[1fr,1.05fr] lg:min-h-[640px]">
+            <motion.div variants={stagger} initial="hidden" animate="show" className="flex flex-col justify-between py-4 lg:py-8">
+              <div>
+                <motion.div variants={fade} className="mk-pill">
+                  <Star className="h-3.5 w-3.5 fill-[#0B0B0C]" /> Product research for US TikTok Shop sellers
+                </motion.div>
+                <motion.h1 variants={fade} className="mk-h1 mt-7">
+                  <span className="sr-only">TikProfitPro: </span>
+                  Find TikTok Shop products before they peak
+                </motion.h1>
+              </div>
+              <div className="mt-10 lg:mt-0">
+                <motion.p variants={fade} className="mk-lead max-w-[460px]">
+                  Spot products while they're still emerging, check the real margin after TikTok's fees, and find who makes them. One tool, ten minutes.
+                </motion.p>
+                <motion.div variants={fade} className="mt-7 flex flex-wrap items-center gap-3">
+                  <Link to="/pricing#free" className="mk-btn-primary">Try it free</Link>
+                  <Link to="/calculator" className="mk-btn-secondary">Profit calculator</Link>
+                </motion.div>
+                <motion.p variants={fade} className="mt-4 text-[13px] mk-muted">Free plan, no card required.</motion.p>
+              </div>
+            </motion.div>
 
-      {/* ───── HERO ───── */}
-      <section className="relative pt-28 md:pt-36 pb-16 md:pb-24 text-center max-w-4xl mx-auto px-4 md:px-6">
-        <div className="absolute top-[-120px] left-1/2 -translate-x-1/2 w-[400px] md:w-[700px] h-[400px] md:h-[700px] rounded-full pointer-events-none"
-          style={{ background: "radial-gradient(circle, rgba(0,255,133,0.10) 0%, transparent 70%)" }} />
+            <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              className="relative min-h-[520px] overflow-hidden rounded-[28px] bg-[#E9EEF3]">
+              <img src="/landing/hero-creator.webp" alt="A seller filming a beauty product demo on a phone"
+                className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: "50% 40%" }} />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/0 to-black/0" />
 
-        <motion.div variants={stagger} initial="hidden" animate="show" className="relative z-10 space-y-5 md:space-y-7">
-          <motion.div variants={fadeChild}>
-            <span className="inline-block px-4 md:px-5 py-2 rounded-full text-xs md:text-sm font-medium border"
-              style={{ background: "rgba(0,255,133,0.08)", borderColor: "rgba(0,255,133,0.25)", color: "#00ff85" }}>
-              🔥 700+ Trending Products Updated Weekly
-            </span>
-          </motion.div>
+              {/* Floating: momentum card */}
+              <div className="absolute right-4 top-4 md:right-6 md:top-6 w-[230px] rounded-2xl bg-white p-4 shadow-[0_12px_32px_-12px_rgba(16,24,40,0.35)]">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-medium text-[#0B0B0C]">Momentum, 7 days</span>
+                  <StageBadge stage="emerging" />
+                </div>
+                <div className="mt-3 flex items-end gap-1.5 h-[72px]">
+                  {[18, 22, 26, 34, 45, 58, 78].map((h, i) => (
+                    <div key={i} className="flex-1 rounded-[4px]" style={{ height: `${h}%`, background: i === 6 ? "#12B76A" : "#D1FADF" }} />
+                  ))}
+                </div>
+                <div className="mt-3 flex items-baseline justify-between">
+                  <span className="text-[22px] font-semibold tracking-tight mk-num">+212%</span>
+                  <span className="text-[11px] mk-muted">GMV vs last week</span>
+                </div>
+              </div>
 
-          <motion.h1 variants={fadeChild} className="text-3xl sm:text-4xl md:text-7xl font-extrabold leading-[1.1] md:leading-[1.05] tracking-tight">
-            <span className="sr-only">TikProfitPro — </span>Find TikTok Shop<br />
-            <span className="bg-gradient-to-r from-white to-[#00ff85] bg-clip-text text-transparent">Winners Before</span>
-            <br />They Go Viral
-          </motion.h1>
+              {/* Floating: supplier chip */}
+              <div className="absolute left-4 bottom-20 md:left-6 md:bottom-24 flex items-center gap-3 rounded-2xl bg-white/95 px-4 py-3 shadow-[0_12px_32px_-12px_rgba(16,24,40,0.35)] backdrop-blur">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0B0B0C]"><Factory className="h-4 w-4 text-white" /></span>
+                <div className="text-[13px] leading-tight">
+                  <div className="font-medium text-[#0B0B0C]">Supplier match found</div>
+                  <div className="mk-muted mk-num">from $2.10 a unit · MOQ 200</div>
+                </div>
+              </div>
 
-          <motion.p variants={fadeChild} className="text-base md:text-xl max-w-xl mx-auto leading-relaxed px-2" style={{ color: "#888" }}>
-            Track virality scores, GMV data, and supplier prices — source profitable products before your competition.
-          </motion.p>
-
-          <motion.div variants={fadeChild} className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-center px-4 sm:px-0">
-            <Link to="/pricing"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl text-base font-semibold inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 min-h-[48px]"
-              style={{ background: "linear-gradient(135deg, #00ff85, #00cc6a)", color: "#080808", boxShadow: "0 0 35px rgba(0,255,133,0.35)" }}>
-              Start for $39/mo →
-            </Link>
-            <Link to="/tutorials"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl text-base font-medium border border-white/15 text-white/80 hover:border-white/30 hover:bg-white/5 transition-all inline-flex items-center justify-center min-h-[48px]">
-              Watch Tutorials
-            </Link>
-          </motion.div>
-
-          <motion.div variants={fadeChild}>
-            <Link to="/pricing#free"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl text-base font-semibold inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 border min-h-[48px]"
-              style={{ borderColor: "#00ff85", color: "#00ff85", background: "rgba(0,255,133,0.08)" }}>
-              Start for Free →
-            </Link>
-          </motion.div>
-
-          <motion.div variants={fadeChild} className="flex items-center justify-center gap-3 pt-4">
-            <span className="text-xs md:text-sm" style={{ color: "#666" }}>Built for US TikTok Shop sellers · Free plan, no card required</span>
-          </motion.div>
-        </motion.div>
+              {/* Bottom caption */}
+              <div className="absolute inset-x-4 bottom-4 md:inset-x-6 md:bottom-6 flex items-center justify-between text-white">
+                <span className="flex items-center gap-2 text-[14px] font-medium"><TrendingUp className="h-4 w-4" /> Est. margin 58% after fees</span>
+                <span className="text-[12px] text-white/70">Example</span>
+              </div>
+            </motion.div>
+          </div>
+        </div>
       </section>
 
-      {/* ───── PRODUCT PREVIEW (LIVE APP SCREENSHOT) ───── */}
-      <SectionWrapper className="pb-16 md:pb-24">
-        <div className="max-w-5xl mx-auto">
-          <div className="rounded-2xl overflow-hidden border border-white/10" style={{ boxShadow: "0 0 60px rgba(0,255,133,0.08)" }}>
-            {/* Fake browser chrome bar for context */}
-            <div className="flex items-center gap-2 px-4 py-3 bg-[#111] border-b border-white/5">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
-                <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
-                <div className="w-3 h-3 rounded-full bg-[#28c840]" />
+      {/* ───── SOURCES STRIP ───── */}
+      <section className="border-y mk-divider">
+        <div className="mk-container flex flex-col md:flex-row md:items-center gap-4 md:gap-10 py-7">
+          <p className="text-[13px] mk-muted shrink-0">Data and matching across</p>
+          <div className="flex flex-1 flex-wrap items-center justify-between gap-x-10 gap-y-3">
+            {["TikTok Shop", "Alibaba", "AliExpress", "Amazon"].map((n) => (
+              <span key={n} className="text-[18px] md:text-[20px] font-semibold tracking-[-0.02em] text-[#9A9EA5]">{n}</span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ───── PRODUCT TABLE (Ahrefs-style, product first) ───── */}
+      <section id="features" className="py-20 md:py-28">
+        <div className="mk-container">
+          <Reveal className="mx-auto max-w-3xl text-center">
+            <h2 className="mk-h2">Every trending product, scored and staged</h2>
+            <p className="mk-lead mt-5">Sort 700+ TikTok Shop products by momentum, sales and margin. Each one is tagged with where it is in its life cycle, so you know what to launch and what to skip.</p>
+          </Reveal>
+          <Reveal className="mt-12 md:mt-16">
+            <HeroProductMock />
+          </Reveal>
+          <Reveal className="mt-10 grid gap-px overflow-hidden rounded-2xl border mk-divider bg-[#ECECEE] sm:grid-cols-2 lg:grid-cols-4">
+            {([
+              ["emerging", [2, 3, 3, 5, 7, 10, 14], "Early and growing fast. The best time to launch."],
+              ["rising", [5, 7, 8, 10, 12, 13, 15], "Proven demand, still climbing. Launch with a twist."],
+              ["peaking", [8, 12, 15, 17, 18, 18, 17], "Crowded and slowing. Only with a real edge."],
+              ["saturated", [18, 17, 15, 13, 11, 10, 9], "Declining. Skip it."],
+            ] as const).map(([stage, pts, note]) => (
+              <div key={stage} className="bg-white p-6">
+                <StageBadge stage={stage} />
+                <div className="mt-4"><Sparkline points={[...pts]} color={STAGE_COLORS[stage]} width={160} height={40} /></div>
+                <p className="mt-3 text-[14px] leading-relaxed mk-muted">{note}</p>
               </div>
-              <div className="ml-3 px-3 py-1 rounded-md text-xs" style={{ background: "#0a0a0a", color: "#666" }}>
-                app.tikprofitpro.shop/dashboard
+            ))}
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ───── BIG NUMBERS ───── */}
+      <section className="mk-soft py-16 md:py-20">
+        <div className="mk-container grid grid-cols-2 gap-y-10 md:grid-cols-4">
+          {[
+            ["700+", "products tracked"],
+            ["Weekly", "ranking refresh"],
+            ["6%", "TikTok US referral fee, built in"],
+            ["3", "sourcing marketplaces"],
+          ].map(([k, v]) => (
+            <div key={v} className="px-2">
+              <div className="text-[44px] md:text-[64px] font-semibold leading-none tracking-[-0.045em] mk-num">{k}</div>
+              <div className="mt-3 text-[15px] mk-muted">{v}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ───── FEATURE ROWS ───── */}
+      <section id="how-it-works" className="py-20 md:py-28">
+        <div className="mk-container space-y-20 md:space-y-28">
+          {/* Profit */}
+          <Reveal className="grid items-center gap-10 lg:grid-cols-2">
+            <div>
+              <p className="text-[14px] font-medium text-[#0B0B0C]">01 · Check the numbers</p>
+              <h3 className="mk-h2 mt-4">Know your real margin before you spend a dollar</h3>
+              <p className="mk-lead mt-5 max-w-[480px]">Most "winning products" stop winning once you add the fees. Every margin includes TikTok's 6% referral fee, creator commission, shipping and ad cost.</p>
+              <Link to="/calculator" className="mt-7 inline-flex items-center gap-1.5 text-[15px] font-medium text-[#0B0B0C] hover:underline">Open the calculator <ArrowRight className="h-4 w-4" /></Link>
+            </div>
+            <div className="mk-soft rounded-[28px] p-6 md:p-10">
+              <div className="mk-card p-6">
+                <div className="flex items-center justify-between">
+                  <span className="text-[14px] font-medium">Heatless curling ribbon</span>
+                  <StageBadge stage="emerging" />
+                </div>
+                <div className="mt-5 space-y-3 text-[15px] mk-num">
+                  {[["Sale price", "$24.99"], ["Product cost + shipping", "−$6.40"], ["TikTok referral fee (6%)", "−$1.50"], ["Creator commission (15%)", "−$3.75"], ["Ad cost per sale", "−$2.00"]].map(([k, v]) => (
+                    <div key={k} className="flex justify-between"><span className="mk-muted">{k}</span><span>{v}</span></div>
+                  ))}
+                  <div className="flex justify-between border-t mk-divider pt-3 text-[17px] font-semibold"><span>Net profit per sale</span><span className="text-[#067647]">$11.34</span></div>
+                  <div className="flex justify-between text-[13px] mk-muted"><span>Margin 45% · Break-even at $10.63</span><span>Example</span></div>
+                </div>
               </div>
             </div>
-            <video
-              src="/screenshots/dashboard-demo.mp4"
-              poster="/screenshots/dashboard-preview.png"
-              className="w-full block"
-              autoPlay
-              loop
-              muted
-              playsInline
-              preload="metadata"
-            >
+          </Reveal>
+
+          {/* Source */}
+          <Reveal className="grid items-center gap-10 lg:grid-cols-2">
+            <div className="lg:order-2">
+              <p className="text-[14px] font-medium text-[#0B0B0C]">02 · Find who makes it</p>
+              <h3 className="mk-h2 mt-4">Match any product to suppliers in one click</h3>
+              <p className="mk-lead mt-5 max-w-[480px]">Search Alibaba, AliExpress and Amazon for matching listings, then compare unit cost, minimum order and shipping side by side.</p>
+              <Link to="/suppliers" className="mt-7 inline-flex items-center gap-1.5 text-[15px] font-medium text-[#0B0B0C] hover:underline">Where to source <ArrowRight className="h-4 w-4" /></Link>
+            </div>
+            <div className="mk-soft rounded-[28px] p-6 md:p-10 lg:order-1">
+              <div className="mk-card overflow-hidden">
+                <div className="grid grid-cols-[1fr,auto,auto,auto] gap-x-5 px-5 py-3 text-[12px] mk-muted bg-[#FAFAFA] border-b mk-divider">
+                  <span>Listing</span><span className="text-right">Unit</span><span className="text-right">MOQ</span><span className="text-right">Match</span>
+                </div>
+                {[
+                  ["Factory listing · Alibaba", "$2.10", "200", "High", "#067647", "#ECFDF3"],
+                  ["Store listing · AliExpress", "$3.45", "1", "High", "#067647", "#ECFDF3"],
+                  ["Similar item · Amazon", "$7.99", "1", "Partial", "#B54708", "#FFFAEB"],
+                ].map(([n, c, m, conf, fg, bg]) => (
+                  <div key={n} className="grid grid-cols-[1fr,auto,auto,auto] items-center gap-x-5 px-5 py-3.5 text-[14px] border-b mk-divider last:border-0">
+                    <span className="font-medium">{n}</span>
+                    <span className="text-right mk-num">{c}</span>
+                    <span className="text-right mk-num mk-muted">{m}</span>
+                    <span className="rounded-full px-2 py-0.5 text-[12px] font-medium" style={{ color: fg, background: bg }}>{conf}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-[13px] mk-muted">Example results. Always order a sample before buying in bulk.</p>
+            </div>
+          </Reveal>
+
+          {/* Creators */}
+          <Reveal className="grid items-center gap-10 lg:grid-cols-2">
+            <div>
+              <p className="text-[14px] font-medium text-[#0B0B0C]">03 · Get it in front of buyers</p>
+              <h3 className="mk-h2 mt-4">See which creators and shops are already selling</h3>
+              <p className="mk-lead mt-5 max-w-[480px]">Browse UGC and AI-content creators by revenue, followers and engagement, plus the fastest-growing new shops in your niche.</p>
+            </div>
+            <div className="mk-soft rounded-[28px] p-6 md:p-10">
+              <div className="grid grid-cols-2 gap-3">
+                {[["UGC creators", "Video GMV"], ["AIGC creators", "Engagement"], ["New shops", "Growth rate"], ["Live sellers", "Live GMV"]].map(([t, m]) => (
+                  <div key={t} className="mk-card p-5">
+                    <div className="text-[15px] font-medium">{t}</div>
+                    <div className="mt-1 text-[13px] mk-muted">Sort by {m.toLowerCase()}</div>
+                    <ArrowUpRight className="mt-6 h-4 w-4" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ───── DEMO ───── */}
+      <section className="pb-20 md:pb-28">
+        <div className="mk-container">
+          <Reveal className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+            <h2 className="mk-h2 max-w-xl">From trending video to supplier in two minutes</h2>
+            <Link to="/tutorials" className="mk-btn-secondary self-start md:self-auto"><PlayCircle className="h-4 w-4" /> Watch tutorials</Link>
+          </Reveal>
+          <Reveal className="overflow-hidden rounded-[28px] bg-[#0B0B0C] p-2 md:p-3">
+            <video src="/screenshots/dashboard-demo.mp4" poster="/screenshots/dashboard-preview.png" className="block w-full rounded-[20px]" autoPlay loop muted playsInline preload="metadata">
               Your browser does not support embedded video.
             </video>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ───── CALCULATOR ───── */}
+      <section className="mk-soft py-20 md:py-28">
+        <div className="mk-container">
+          <Reveal className="mb-10 max-w-2xl">
+            <h2 className="mk-h2">Try the profit calculator</h2>
+            <p className="mk-lead mt-4">Free, no sign-up. Change any number and the result updates instantly.</p>
+          </Reveal>
+          <Reveal className="mk-card p-5 md:p-8">
+            <ProfitCalcEmbed />
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ───── PRICING ───── */}
+      <section id="pricing" className="py-20 md:py-28">
+        <div className="mk-container">
+          <Reveal className="mx-auto mb-12 max-w-2xl text-center">
+            <h2 className="mk-h2">Simple pricing</h2>
+            <p className="mk-lead mt-4">Start free. Upgrade when you're ready to source.</p>
+          </Reveal>
+          <div className="grid gap-4 md:grid-cols-3">
+            {PLANS.map((p) => (
+              <Reveal key={p.name} className={`flex flex-col rounded-[24px] p-7 md:p-8 ${p.featured ? "bg-[#0B0B0C] text-white" : "mk-card"}`}>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[16px] font-medium">{p.name}</h3>
+                  {p.featured && <span className="rounded-full bg-white/10 px-2.5 py-1 text-[12px] font-medium">Most popular</span>}
+                </div>
+                <div className="mt-5 flex items-baseline gap-1">
+                  <span className="text-[52px] font-semibold leading-none tracking-[-0.04em] mk-num">{p.price}</span>
+                  <span className={`text-[15px] ${p.featured ? "text-white/60" : "mk-muted"}`}>{p.period}</span>
+                </div>
+                <ul className="mt-7 flex-1 space-y-3">
+                  {p.features.map((f) => (
+                    <li key={f} className={`flex items-start gap-2.5 text-[15px] ${p.featured ? "text-white/85" : "text-[#2A2C30]"}`}>
+                      <Check className={`mt-0.5 h-4 w-4 shrink-0 ${p.featured ? "text-[#32D583]" : "text-[#12B76A]"}`} /> {f}
+                    </li>
+                  ))}
+                </ul>
+                {p.ultimate ? (
+                  <button onClick={() => checkout("ultimate")} disabled={checkoutLoading} className="mk-btn-secondary mt-8 w-full">
+                    {checkoutLoading ? "Loading…" : p.cta}
+                  </button>
+                ) : p.featured ? (
+                  <Link to={p.to!} className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-full bg-white text-[15px] font-medium text-[#0B0B0C] hover:bg-white/90">{p.cta}</Link>
+                ) : (
+                  <Link to={p.to!} className="mk-btn-secondary mt-8 w-full">{p.cta}</Link>
+                )}
+              </Reveal>
+            ))}
           </div>
-          <p className="text-center text-xs md:text-sm mt-4" style={{ color: "#666" }}>
-            See TikProfitPro in action — from spotting a trending product to sourcing a supplier, in seconds.
-          </p>
+          <p className="mt-6 text-center text-[14px] mk-muted">No contracts. Cancel anytime. 7-day money-back guarantee.</p>
         </div>
-      </SectionWrapper>
-      <SectionWrapper className="pb-16 md:pb-24">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          {[
-            { value: "700+", label: "Trending Products Weekly" },
-            { value: "$2.3M+", label: "GMV Tracked Daily" },
-            { value: "8,000+", label: "Sellers Trust TikProfitPro" },
-            { value: "94%", label: "Find a Winner in Week 1" },
-          ].map((s) => (
-            <div key={s.label} className="p-4 md:p-6 rounded-2xl border border-white/5 bg-white/[0.02] hover:border-[#00ff85]/20 hover:bg-[#00ff85]/[0.03] transition-all group">
-              <div className="text-2xl md:text-4xl font-extrabold" style={{ color: "#00ff85" }}>{s.value}</div>
-              <div className="text-[10px] md:text-xs mt-1 md:mt-2" style={{ color: "#888" }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </SectionWrapper>
+      </section>
 
-      {/* ───── HOW IT WORKS ───── */}
-      <SectionWrapper id="how-it-works" className="pb-16 md:pb-24">
-        <h2 className="text-2xl md:text-4xl font-extrabold text-center tracking-tight mb-4">How It Works</h2>
-        <p className="text-center mb-8 md:mb-12 text-sm md:text-base" style={{ color: "#888" }}>Three steps to finding your next winning product</p>
-        <div className="grid md:grid-cols-3 gap-6 md:gap-8">
-          {[
-            { num: "1", icon: "📊", title: "We Track 700+ Products", desc: "We track 700+ TikTok Shop products weekly so you don't have to." },
-            { num: "2", icon: "🧠", title: "Algorithm Scores Virality", desc: "Our algorithm scores virality before products peak — giving you the edge." },
-            { num: "3", icon: "🚀", title: "You Source & List First", desc: "You find the supplier, calculate profit, and list it first — before the competition." },
-          ].map((step) => (
-            <div key={step.num} className="text-center relative">
-              <div className="w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center text-lg md:text-xl font-bold mx-auto mb-3 md:mb-4 border"
-                style={{ borderColor: "#00ff85", color: "#00ff85", background: "rgba(0,255,133,0.08)" }}>
-                {step.num}
+      {/* ───── FOUNDER ───── */}
+      <section id="about" className="border-t mk-divider py-20 md:py-24">
+        <div className="mk-container">
+          <Reveal className="mx-auto grid max-w-4xl items-center gap-8 md:grid-cols-[auto,1fr]">
+            <img src="/founder-arif.webp" alt="Muhammad Arif Suriwala, founder of TikProfitPro"
+              className="h-32 w-32 md:h-40 md:w-40 rounded-[24px] object-cover" style={{ objectPosition: "50% 15%" }} />
+            <div>
+              <p className="text-[22px] md:text-[28px] font-medium leading-snug tracking-[-0.02em]">
+                "I'm building TikProfitPro to give TikTok Shop sellers the research I wished existed: honest data, real margins and suppliers you can actually order from."
+              </p>
+              <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[15px]">
+                <span className="font-medium">Muhammad Arif Suriwala</span>
+                <span className="mk-muted">Founder & AI engineer</span>
+                <a href="https://www.linkedin.com/in/sodewala" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium hover:underline">LinkedIn <ArrowUpRight className="h-4 w-4" /></a>
               </div>
-              <div className="text-2xl md:text-3xl mb-2 md:mb-3">{step.icon}</div>
-              <h3 className="text-base md:text-lg font-bold mb-2">{step.title}</h3>
-              <p className="text-sm leading-relaxed" style={{ color: "#888" }}>{step.desc}</p>
             </div>
-          ))}
+          </Reveal>
         </div>
-      </SectionWrapper>
+      </section>
 
-      {/* ───── FEATURES ───── */}
-      <SectionWrapper id="features" className="pb-16 md:pb-24">
-        <h2 className="text-2xl md:text-4xl font-extrabold text-center tracking-tight mb-4">Everything You Need to Win on TikTok Shop</h2>
-        <p className="text-center mb-8 md:mb-12 text-sm md:text-base" style={{ color: "#888" }}>Powerful tools to find, validate, and source winning products</p>
-        <div className="grid md:grid-cols-3 gap-4 md:gap-5">
-          {[
-            { icon: "🔥", title: "Virality Score Tracking", desc: "Know which products are about to explode before your competition does." },
-            { icon: "💰", title: "Profit Calculator", desc: "Instantly calculate net profit after TikTok fees and ad spend." },
-            { icon: "🏭", title: "Supplier Matching", desc: "Match products to Alibaba, AliExpress and Amazon listings, then compare unit cost, MOQ and shipping." },
-          ].map((f) => (
-            <div key={f.title} className="p-6 md:p-8 rounded-2xl border border-white/5 bg-[#111] hover:border-[#00ff85]/20 transition-all group">
-              <div className="text-3xl md:text-4xl mb-3 md:mb-4">{f.icon}</div>
-              <h3 className="text-base md:text-lg font-bold mb-2">{f.title}</h3>
-              <p className="text-sm leading-relaxed" style={{ color: "#888" }}>{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </SectionWrapper>
-
-      {/* ───── VIDEO TUTORIAL ───── */}
-      <section className="pb-16 md:pb-24 px-4 md:px-6" style={{ background: "#080c14" }}>
-        <div className="max-w-4xl mx-auto pt-16 md:pt-24">
-          <h2 className="text-2xl md:text-4xl font-extrabold text-center tracking-tight mb-3" style={{ color: "#fff" }}>
-            See TikProfitPro in Action
-          </h2>
-          <p className="text-center mb-8 md:mb-10 text-sm md:text-base" style={{ color: "#888" }}>
-            Watch how to find winning products in under 2 minutes.
-          </p>
-          <div
-            className="mx-auto relative w-full overflow-hidden rounded-2xl"
-            style={{
-              maxWidth: 800,
-              paddingTop: "min(56.25%, 450px)",
-              border: "1px solid rgba(0,255,136,0.3)",
-              boxShadow: "0 0 60px rgba(0,255,136,0.2), 0 0 100px rgba(0,255,136,0.08)",
-              background: "#000",
-            }}
-          >
-            <iframe
-              src="https://www.youtube.com/embed/lWwx4ZflJyU?rel=0&modestbranding=1"
-              title="See TikProfitPro in Action"
-              className="absolute inset-0 w-full h-full"
-              frameBorder={0}
-              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              loading="lazy"
-            />
+      {/* ───── GUIDES ───── */}
+      <section className="pb-20 md:pb-28">
+        <div className="mk-container">
+          <div className="mb-8 flex items-end justify-between gap-4">
+            <h2 className="mk-h2">Learn the playbook</h2>
+            <a href="https://blog.tikprofitpro.shop/" className="hidden sm:inline-flex items-center gap-1 text-[15px] font-medium hover:underline">All guides <ArrowRight className="h-4 w-4" /></a>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {GUIDES.map((g) => (
+              <a key={g.href} href={g.href} className="group mk-soft flex min-h-[200px] flex-col justify-between rounded-[24px] p-6 transition-colors hover:bg-[#EDEDEF]">
+                <span className="text-[13px] mk-muted">{g.tag}</span>
+                <div>
+                  <h3 className="text-[18px] font-medium leading-snug tracking-[-0.01em]">{g.title}</h3>
+                  <ArrowUpRight className="mt-4 h-5 w-5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                </div>
+              </a>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ───── 3 STEPS ───── */}
-      <SectionWrapper className="pb-16 md:pb-24">
-        <h2 className="text-2xl md:text-4xl font-extrabold text-center tracking-tight mb-8 md:mb-12">Start Selling Winners in 3 Steps</h2>
-        <div className="grid md:grid-cols-3 gap-6 md:gap-8">
-          {[
-            { num: "1", icon: "🔍", title: "Browse Trending Products", desc: "Explore 700+ products ranked by virality score, updated weekly." },
-            { num: "2", icon: "💰", title: "Calculate Profit Margins", desc: "Instantly see your net profit after all TikTok fees and ad costs." },
-            { num: "3", icon: "🚀", title: "Source & Launch", desc: "Shortlist suppliers, order samples, and launch once the numbers work." },
-          ].map((step) => (
-            <div key={step.num} className="text-center relative">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-base md:text-lg font-bold mx-auto mb-3 md:mb-4 border"
-                style={{ borderColor: "#00ff85", color: "#00ff85", background: "rgba(0,255,133,0.08)" }}>
-                {step.num}
-              </div>
-              <div className="text-2xl md:text-3xl mb-2 md:mb-3">{step.icon}</div>
-              <h3 className="text-base md:text-lg font-bold mb-2">{step.title}</h3>
-              <p className="text-sm" style={{ color: "#888" }}>{step.desc}</p>
-            </div>
-          ))}
-        </div>
-      </SectionWrapper>
-
-      {/* ───── CALCULATOR PREVIEW ───── */}
-      <SectionWrapper className="pb-16 md:pb-24">
-        <h2 className="text-2xl md:text-4xl font-extrabold text-center tracking-tight mb-3">Know Your Profit Before You Commit</h2>
-        <p className="text-center mb-8 md:mb-10 text-sm md:text-base" style={{ color: "#888" }}>Try the live calculator — enter your numbers and see instant results</p>
-        <div className="p-4 md:p-8 rounded-2xl border border-white/5 bg-[#111]">
-          <ProfitCalcEmbed />
-        </div>
-      </SectionWrapper>
-
-      {/* ───── PRICING PREVIEW ───── */}
-      <SectionWrapper className="pb-16 md:pb-24">
-        <h2 className="text-2xl md:text-4xl font-extrabold text-center tracking-tight mb-3">Simple Pricing</h2>
-        <p className="text-center mb-8 md:mb-10 text-sm md:text-base" style={{ color: "#888" }}>One product win pays for months of TikProfitPro</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6 max-w-5xl mx-auto">
-          {/* Free */}
-          <div className="p-6 md:p-8 rounded-2xl border border-white/5 bg-white/[0.02]">
-            <p className="text-sm" style={{ color: "#888" }}>Free</p>
-            <p className="text-4xl md:text-5xl font-extrabold mt-1">$0</p>
-            <p className="text-xs mt-1 mb-5 md:mb-6" style={{ color: "#666" }}>Forever free</p>
-            {["Top 10 trending products", "Basic virality scores", "Dashboard overview"].map((f) => (
-              <div key={f} className="flex items-center gap-2 text-sm mb-2.5"><span style={{ color: "#00ff85" }}>✓</span> {f}</div>
-            ))}
-            {["Full 700+ products", "Supplier matching", "Profit calculator", "Product detail stats"].map((f) => (
-              <div key={f} className="flex items-center gap-2 text-sm mb-2.5" style={{ color: "#555" }}><span>✕</span> {f}</div>
-            ))}
-            <Link to="/pricing#free" className="mt-5 md:mt-6 w-full inline-flex justify-center py-3 rounded-xl border border-white/15 text-sm font-medium hover:bg-white/5 transition-all min-h-[44px] items-center">
-              Start Free
-            </Link>
-          </div>
-          {/* Pro */}
-          <div className="p-6 md:p-8 rounded-2xl border relative overflow-hidden"
-            style={{ borderColor: "rgba(0,255,133,0.25)", background: "linear-gradient(135deg, rgba(0,255,133,0.06), rgba(0,204,106,0.02))", boxShadow: "0 0 60px rgba(0,255,133,0.06)" }}>
-            <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: "linear-gradient(90deg, transparent, #00ff85, transparent)" }} />
-            <div className="flex justify-between items-center">
-              <p className="text-sm" style={{ color: "#00ff85" }}>Pro</p>
-              <span className="text-xs px-3 py-1 rounded-full border" style={{ background: "rgba(0,255,133,0.1)", borderColor: "rgba(0,255,133,0.25)", color: "#00ff85" }}>Most Popular</span>
-            </div>
-            <p className="text-4xl md:text-5xl font-extrabold mt-1">$39</p>
-            <p className="text-xs mt-1 mb-5 md:mb-6" style={{ color: "#666" }}>per month</p>
-            {["All 700+ trending products", "Advanced virality scores", "Profit calculator", "Supplier matching (50 credits)", "Full product detail stats", "Weekly updated rankings"].map((f) => (
-              <div key={f} className="flex items-center gap-2 text-sm mb-2.5"><span style={{ color: "#00ff85" }}>✓</span> {f}</div>
-            ))}
-            <Link to="/pricing"
-              className="mt-5 md:mt-6 w-full inline-flex justify-center py-3 rounded-xl text-sm font-semibold transition-all hover:-translate-y-0.5 min-h-[44px] items-center"
-              style={{ background: "linear-gradient(135deg, #00ff85, #00cc6a)", color: "#080808", boxShadow: "0 0 30px rgba(0,255,133,0.3)" }}>
-              Start for $39/mo →
-            </Link>
-          </div>
-          {/* Ultimate */}
-          <div className="p-6 md:p-8 rounded-2xl border border-white/5 bg-white/[0.02]">
-            <p className="text-sm" style={{ color: "#00ff85" }}>Ultimate</p>
-            <p className="text-4xl md:text-5xl font-extrabold mt-1">$99</p>
-            <p className="text-xs mt-1 mb-5 md:mb-6" style={{ color: "#666" }}>per month</p>
-            {["Everything in Pro", "120 credits/month", "Priority support", "Early access to new features", "Onboarding call"].map((f) => (
-              <div key={f} className="flex items-center gap-2 text-sm mb-2.5"><span style={{ color: "#00ff85" }}>✓</span> {f}</div>
-            ))}
-            <button onClick={() => checkout("ultimate")} disabled={checkoutLoading}
-              className="mt-5 md:mt-6 w-full inline-flex justify-center py-3 rounded-xl text-sm font-semibold transition-all hover:-translate-y-0.5 min-h-[44px] items-center"
-              style={{ background: "linear-gradient(135deg, #00ff85, #00cc6a)", color: "#080808", boxShadow: "0 0 30px rgba(0,255,133,0.3)" }}>
-              {checkoutLoading ? "Loading..." : "Start Ultimate →"}
-            </button>
-          </div>
-        </div>
-        <p className="text-center text-xs mt-6" style={{ color: "#555" }}>No contracts · Cancel anytime · 7-day money back guarantee</p>
-      </SectionWrapper>
-
-      {/* ───── TESTIMONIALS ───── */}
-      <SectionWrapper className="pb-16 md:pb-24">
-        <h2 className="text-2xl md:text-4xl font-extrabold text-center tracking-tight mb-8 md:mb-10">What Sellers Are Saying</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
-          {[
-            { name: "Alex R.", handle: "@dropking_jay", quote: "Found a $40K/mo product in my first week using TikProfitPro. Worth every penny.", initials: "AR" },
-            { name: "Maria T.", handle: "@tikshop_maria", quote: "The profit calculator alone saves me hours every week. I never launch without checking it first.", initials: "MT" },
-            { name: "James K.", handle: "@ecom_jamesk", quote: "Virality scores are incredibly accurate. Caught 3 winners before they blew up.", initials: "JK" },
-          ].map((t) => (
-            <div key={t.name} className="p-5 md:p-6 rounded-2xl border border-white/5 bg-[#111] hover:border-[#00ff85]/10 transition-all">
-              <div className="flex items-center gap-3 mb-3 md:mb-4">
-                <div className="w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: "rgba(0,255,133,0.15)", color: "#00ff85" }}>
-                  {t.initials}
-                </div>
-                <div>
-                  <p className="font-semibold text-sm">{t.name}</p>
-                  <p className="text-xs" style={{ color: "#666" }}>{t.handle}</p>
-                </div>
-              </div>
-              <div className="flex gap-0.5 mb-3">
-                {Array(5).fill(0).map((_, i) => (<span key={i} style={{ color: "#00ff85" }}>★</span>))}
-              </div>
-              <p className="text-sm leading-relaxed" style={{ color: "#aaa" }}>"{t.quote}"</p>
-            </div>
-          ))}
-        </div>
-      </SectionWrapper>
+      <FAQSection />
 
       {/* ───── FINAL CTA ───── */}
-      <SectionWrapper className="pb-16 md:pb-24 text-center">
-        <h2 className="text-2xl md:text-5xl font-extrabold tracking-tight mb-6">
-          Ready to Find Your Next<br />
-          <span style={{ color: "#00ff85" }}>Winning Product?</span>
-        </h2>
-        <div className="flex flex-col items-center gap-3 md:gap-4 px-4 sm:px-0">
-          <Link to="/pricing"
-            className="w-full sm:w-auto px-10 py-4 rounded-xl text-base font-semibold transition-all hover:-translate-y-0.5 min-h-[48px] inline-flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #00ff85, #00cc6a)", color: "#080808", boxShadow: "0 0 40px rgba(0,255,133,0.35)" }}>
-            Start for $39/mo →
-          </Link>
-          <Link to="/pricing#free"
-            className="w-full sm:w-auto px-8 py-4 rounded-xl text-base font-semibold inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 border min-h-[48px]"
-            style={{ borderColor: "#00ff85", color: "#00ff85", background: "rgba(0,255,133,0.08)" }}>
-            Start for Free →
-          </Link>
-        </div>
-      </SectionWrapper>
-
-      {/* ───── FOUNDER / ABOUT ───── */}
-      <SectionWrapper id="about" className="pb-16 md:pb-24">
-        <h2 className="text-2xl md:text-4xl font-extrabold text-center tracking-tight mb-8 md:mb-10">Built By</h2>
-        <div className="max-w-2xl mx-auto p-6 md:p-8 rounded-2xl border border-white/5 bg-white/[0.02] flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
-          <img
-            src="/founder-arif.webp"
-            alt="Muhammad Arif Suriwala, Founder of TikProfitPro"
-            className="w-28 h-28 md:w-32 md:h-32 rounded-full object-cover flex-shrink-0"
-            style={{ borderColor: "#00ff85", borderWidth: 2, borderStyle: "solid", objectPosition: "50% 15%" }}
-          />
-          <div>
-            <h3 className="text-lg md:text-xl font-bold">Muhammad Arif Suriwala</h3>
-            <p className="text-sm mb-3" style={{ color: "#00ff85" }}>Founder &amp; Full-Stack / AI Engineer</p>
-            <p className="text-sm leading-relaxed mb-4" style={{ color: "#aaa" }}>
-              Arif is a solo technical founder based in Karachi, Pakistan, building TikProfitPro to help
-              TikTok Shop sellers find winning products before they go viral. He owns the full technical
-              stack of the product, end to end.
-            </p>
-            <a
-              href="https://www.linkedin.com/in/sodewala"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg border transition-all hover:-translate-y-0.5"
-              style={{ borderColor: "#00ff85", color: "#00ff85", background: "rgba(0,255,133,0.08)" }}
-            >
-              View LinkedIn Profile →
-            </a>
+      <section className="pb-16 md:pb-24">
+        <div className="mk-container">
+          <div className="rounded-[32px] bg-[#0B0B0C] px-6 py-16 md:px-16 md:py-24 text-white">
+            <div className="grid items-end gap-10 md:grid-cols-[1.4fr,1fr]">
+              <h2 className="text-[38px] md:text-[60px] font-semibold leading-[1.02] tracking-[-0.045em]">Your next winner is emerging right now</h2>
+              <div>
+                <p className="text-[17px] text-white/65">Start free and see this week's emerging products in minutes.</p>
+                <div className="mt-7 flex flex-wrap gap-3">
+                  <Link to="/pricing#free" className="inline-flex h-12 items-center rounded-full bg-white px-6 text-[15px] font-medium text-[#0B0B0C] hover:bg-white/90">Try it free</Link>
+                  <Link to="/pricing" className="inline-flex h-12 items-center rounded-full bg-white/10 px-6 text-[15px] font-medium hover:bg-white/15">See pricing</Link>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </SectionWrapper>
+      </section>
 
-      {/* ───── LATEST GUIDES ───── */}
-      <SectionWrapper className="pb-16 md:pb-24">
-        <h2 className="text-2xl md:text-4xl font-extrabold text-center tracking-tight mb-8 md:mb-10">Latest Guides</h2>
-        <div className="grid sm:grid-cols-2 gap-4 md:gap-5 max-w-4xl mx-auto">
-          {[
-            { href: "https://blog.tikprofitpro.shop/tiktok-shop-product-research-tool/", title: "How to Research TikTok Shop Products" },
-            { href: "https://blog.tikprofitpro.shop/tiktok-shop-for-beginners-usa-guide-a-practical-approach-to-success/", title: "TikTok Shop for Beginners: A Practical US Guide" },
-            { href: "https://blog.tikprofitpro.shop/best-products-to-sell-on-tiktok-shop/", title: "Best Products to Sell on TikTok Shop" },
-            { href: "https://blog.tikprofitpro.shop/tiktok-shop-vs-amazon-dropshipping-which-is-better-for-us-sellers-in-2026/", title: "TikTok Shop vs Amazon Dropshipping: Which Is Better for US Sellers in 2026?" },
-          ].map((g) => (
-            <a key={g.href} href={g.href}
-              className="p-5 md:p-6 rounded-2xl border border-white/5 bg-[#111] hover:border-[#00ff85]/20 transition-all group block">
-              <h3 className="text-base md:text-lg font-bold mb-2 group-hover:text-[#00ff85] transition-colors">{g.title}</h3>
-              <p className="text-sm" style={{ color: "#00ff85" }}>Read the guide →</p>
-            </a>
-          ))}
-        </div>
-      </SectionWrapper>
-
-      <FAQSection />
-      <Footer />
+      <Footer variant="light" />
     </div>
   );
 };

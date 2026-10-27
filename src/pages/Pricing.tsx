@@ -61,10 +61,10 @@ const Pricing = () => {
             <p className="text-sm" style={{ color: "#888" }}>Free</p>
             <p className="text-4xl md:text-5xl font-extrabold mt-1">$0</p>
             <p className="text-xs mt-1 mb-5 md:mb-6" style={{ color: "#666" }}>Forever free</p>
-            {["10 trending products", "Basic virality scores", "Dashboard overview"].map((f) => (
+            {["10 trending products", "Basic virality scores", "Dashboard overview", "Profit calculator"].map((f) => (
               <div key={f} className="flex items-center gap-2 text-sm mb-2.5"><span style={{ color: "#00ff85" }}>✓</span> {f}</div>
             ))}
-            {["Full 700+ products", "Sourcing credits", "Profit calculator", "Supplier matching"].map((f) => (
+            {["Full 700+ products", "Sourcing credits", "Supplier matching"].map((f) => (
               <div key={f} className="flex items-center gap-2 text-sm mb-2.5" style={{ color: "#555" }}><span>✕</span> {f}</div>
             ))}
             <Link to={freeCta}
