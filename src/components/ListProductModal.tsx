@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { api } from "@/lib/api";
 import { X, Copy, ExternalLink, Check, ImagePlus, DollarSign, ListChecks, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,23 +55,23 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
   const [images, setImages] = useState<string[]>(product.thumbnail_url ? [product.thumbnail_url] : []);
   const [copied, setCopied] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [missingInfo, setMissingInfo] = useState<string[]>([]);
 
   const generateWithAI = async () => {
     setGenerating(true);
     try {
-      const response = await fetch("https://api.tikprofitpro.shop/generate-listing", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          product_name: title,
-          price: parseFloat(price) || 0,
-          category: product.category ?? ""
-        })
+      // Signed-in call; backend looks at the photo and avoids generic marketing copy.
+      const parsed = await api.generateListing({
+        product_name: title,
+        price: parseFloat(price) || 0,
+        category: product.category ?? "",
+        image_url: product.image_storage_url || product.thumbnail_url || "",
       });
-      const parsed = await response.json();
+      if (parsed.title) setTitle(parsed.title);
       if (parsed.description) setDescription(parsed.description);
       if (parsed.category) setCategory(parsed.category);
       if (parsed.sellingPoints) setSellingPoints(parsed.sellingPoints);
+      if (Array.isArray(parsed.missing_info) && parsed.missing_info.length) setMissingInfo(parsed.missing_info);
     } catch (err) {
       console.error("AI generation failed:", err);
     } finally {
@@ -273,6 +274,11 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
                 <p className="text-xs text-muted-foreground mt-1">
                   One per line — shown as bullet points in preview
                 </p>
+                {missingInfo.length > 0 && (
+                  <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-300">
+                    Fill these in before publishing: {missingInfo.join(", ")}
+                  </div>
+                )}
               </div>
             </div>
 

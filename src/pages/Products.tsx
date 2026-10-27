@@ -196,10 +196,28 @@ const Products = () => {
     setSupplierResults(null);
     setSupplierError(null);
     try {
-      const data = await api.getSuppliers(productId, platform);
+      let data = await api.getSuppliers(productId, platform);
       if (reqId !== supplierReq.current) return;
-      if (data?.error?.includes("No credits")) {
-        setSupplierError("no_credits");
+      // Photo search runs in a background worker: poll until it finishes (max ~3 min).
+      if (data?.status === "queued" && data?.job_id) {
+        for (let i = 0; i < 60; i++) {
+          await new Promise(r => setTimeout(r, 3000));
+          if (reqId !== supplierReq.current) return;
+          const job = await api.getSourcingJob(data.job_id);
+          if (job.status === "done") { data = { success: true, suppliers: job.suppliers ?? [] }; break; }
+          if (job.status === "no_match" || job.status === "failed") {
+            data = { success: false, message: job.status === "no_match"
+              ? "No supplier photo matched this product closely enough. Your credit was not used."
+              : "Photo search couldn't finish this time. Your credit was not used. Try again in a few minutes." };
+            break;
+          }
+        }
+        if (data?.status === "queued") data = { success: false, message: "Photo search is taking longer than usual. Results will be saved; reopen this product in a few minutes (free)." };
+      }
+      if (data?.success === false) {
+        // Nothing usable found: backend already refunded the credit
+        setSupplierError(data?.message || "No matching suppliers found. Your credit was not used.");
+        queryClient.invalidateQueries({ queryKey: ["credits"] });
       } else {
         const results = data?.suppliers ?? data?.results ?? (Array.isArray(data) ? data : []);
         setSupplierResults(results.slice(0, 3));
@@ -208,9 +226,13 @@ const Products = () => {
       }
     } catch (err: any) {
       if (reqId !== supplierReq.current) return;
-      if (err?.message?.includes("403")) setSupplierError("upgrade");
-      else if (err?.message?.toLowerCase()?.includes("credit")) setSupplierError("no_credits");
-      else setSupplierError(err?.message || "Failed to search suppliers");
+      // Backend sends {"detail": {"code": "no_credits", ...}} or {"detail": "text"}
+      let detail: any = null;
+      try { detail = JSON.parse(err?.message ?? "")?.detail; } catch { /* plain text */ }
+      if (detail?.code === "no_credits") setSupplierError("no_credits");
+      else if (typeof detail === "string") setSupplierError(detail);
+      else setSupplierError("Supplier search failed. Your credit was not used.");
+      queryClient.invalidateQueries({ queryKey: ["credits"] });
     } finally {
       if (reqId === supplierReq.current) setSupplierLoading(false);
     }
@@ -253,6 +275,9 @@ const Products = () => {
 
       <div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">TikTok Shop Intelligence</h1>
+        {items[0]?.data_end_date && (
+          <p className="text-xs text-muted-foreground mt-1">Sales data as of {new Date(items[0].data_end_date).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</p>
+        )}
         <p className="text-muted-foreground mt-1 text-sm md:text-base">Products · New Shops · UGC & AIGC Creators</p>
       </div>
 
@@ -811,25 +836,31 @@ const Products = () => {
               </button>
             </div>
             <div className="p-4 md:p-6 space-y-4">
-              <p className="text-sm text-muted-foreground">Choose a platform to source from:</p>
+              <div className="flex items-center justify-between text-sm">
+                <p className="text-muted-foreground">Choose a platform to source from:</p>
+                {creditInfo?.credits_total != null && (
+                  <span className="text-xs text-muted-foreground">{creditInfo.credits_remaining ?? 0} of {creditInfo.credits_total} credits left</span>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground -mt-2">You're only charged when we find matches. Reopening a product you already searched is free.</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {platforms.map(p => (
                   <Button key={p.id} variant="outline"
                     className={`flex flex-col h-auto py-3 font-semibold min-h-[44px] ${p.color} ${supplierPlatform === p.id ? "ring-2 ring-offset-1 ring-offset-background" : ""}`}
                     onClick={() => handleSearchPlatform(p.id)} disabled={supplierLoading}>
                     <span className="text-xs font-medium">{p.label}</span>
-                    <span className="text-[10px] opacity-70">{isFree ? "Free preview" : p.cost}</span>
+                    <span className="text-[10px] opacity-70">1 credit · photo match</span>
                   </Button>
                 ))}
               </div>
               {supplierLoading && (
                 <div className="flex flex-col items-center py-8 gap-3">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  <p className="text-xs text-muted-foreground">Searching suppliers… 15–30 seconds</p>
+                  <p className="text-xs text-muted-foreground">Searching by product photo… usually 30–90 seconds</p>
                 </div>
               )}
               {supplierError === "upgrade" && <div className="text-center py-4 space-y-2"><p className="text-sm text-amber-400">Supplier sourcing requires a paid plan.</p><Link to="/pricing"><Button size="sm" className="bg-primary text-primary-foreground min-h-[44px]">Upgrade →</Button></Link></div>}
-              {supplierError === "no_credits" && <div className="text-center py-4 space-y-2"><p className="text-sm text-amber-400">You've used all your credits.</p><Link to="/pricing"><Button size="sm" className="bg-primary text-primary-foreground min-h-[44px]">Upgrade →</Button></Link></div>}
+              {supplierError === "no_credits" && <div className="text-center py-4 space-y-2"><p className="text-sm text-amber-400">You've used all {creditInfo?.credits_total ?? ""} credits for this period{creditInfo?.period_end ? ` (resets ${new Date(creditInfo.period_end).toLocaleDateString()})` : ""}.</p><Link to="/pricing"><Button size="sm" className="bg-primary text-primary-foreground min-h-[44px]">Upgrade →</Button></Link></div>}
               {supplierError && !["upgrade","no_credits"].includes(supplierError) && <p className="text-center text-sm text-destructive py-4">{supplierError}</p>}
               {supplierResults && supplierResults.length > 0 && (
                 <div className="space-y-3 mt-2">
@@ -848,6 +879,11 @@ const Products = () => {
                           <span className="text-sm font-medium truncate max-w-[70%]">{s.supplier_name || s.name || `Supplier ${i+1}`}</span>
                           <span className={`text-xs font-semibold ${rc}`}>{profitLabel}</span>
                         </div>
+                        {(s.similarity != null || (s._match_method && s._match_method !== "text")) && (
+                          <span className="inline-block text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                            {s.similarity != null ? `Photo match ${Math.round(Number(s.similarity) * 100)}%` : "Photo-checked match"}
+                          </span>
+                        )}
                         <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                           <div>Unit Cost: <span className="text-foreground font-medium">${s.unit_cost_min ?? "—"}</span></div>
                           <div>MOQ: <span className="text-foreground font-medium">{s.moq ?? "—"}</span></div>

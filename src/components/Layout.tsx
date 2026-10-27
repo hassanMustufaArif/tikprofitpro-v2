@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Loader2, Menu, PlayCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { api } from "@/lib/api";
 import VideoModal from "@/components/VideoModal";
 
 function MobileMenuButton() {
@@ -26,19 +27,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth();
   const [videoOpen, setVideoOpen] = useState(false);
 
-  const { data: creditsData } = useQuery({
-    queryKey: ["user-credits-nav", user?.id],
-    queryFn: async () => {
-      if (!user?.email) return null;
-      const { data } = await supabase
-        .from("user_credits")
-        .select("credits_used, credits_total, plan")
-        .eq("user_email", user.email)
-        .maybeSingle();
-      return data;
-    },
+  // Backend is the single source of truth (it also rolls over the monthly period).
+  const { data: creditsResp } = useQuery({
+    queryKey: ["credits"],
+    queryFn: () => api.getCredits(),
     enabled: !!user?.email,
+    retry: false,
   });
+  const creditsData = creditsResp?.credits ?? null;
 
   const plan = creditsData?.plan;
   const showCredits = !!creditsData;
@@ -64,7 +60,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </Button>
               {showCredits && (
                 <span className="text-[10px] md:text-xs text-muted-foreground bg-muted/50 px-2 md:px-2.5 py-1 rounded-md">
-                  <span className="text-foreground font-medium">{creditsData?.credits_used ?? 0}/{creditsData?.credits_total ?? 0}</span>
+                  <span className="text-foreground font-medium">{creditsData?.credits_remaining ?? 0}/{creditsData?.credits_total ?? 0}</span> credits left
                 </span>
               )}
               {user?.email && (
