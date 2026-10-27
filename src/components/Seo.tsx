@@ -9,7 +9,7 @@ export default function Seo() {
   const meta = routeMeta[key];
   if (!meta) return null;
   // Canonicals use the tikprofitpro.shop domain with a trailing slash (e.g. /calculator/).
-  const url = key === "/" ? SITE : `${SITE}${key}/`;
+  const url = key === "/" ? `${SITE}/` : `${SITE}${key}/`;
 
   return (
     <Helmet>

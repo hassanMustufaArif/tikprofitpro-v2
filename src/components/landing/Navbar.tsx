@@ -11,7 +11,7 @@ const navLinks = [
   { label: "Calculator", href: "/calculator" },
   { label: "Suppliers", href: "/suppliers" },
   { label: "Tutorials", href: "/tutorials" },
-  { label: "Blog", href: "https://blog.tikprofitpro.shop", external: true },
+  { label: "Blog", href: "https://blog.tikprofitpro.shop/", external: true },
 ];
 
 export default function Navbar() {
