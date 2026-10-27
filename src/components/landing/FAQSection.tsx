@@ -27,24 +27,24 @@ const faqs = [
 
 export default function FAQSection() {
   return (
-    <SectionWrapper className="pb-20 md:pb-28">
+    <SectionWrapper className="!max-w-[1200px] !px-5 md:!px-8 pb-20 md:pb-28">
       <div className="grid gap-10 md:grid-cols-[1fr,1.6fr]">
       <div>
-        <p className="mk-eyebrow mb-3">FAQ</p>
-        <h2 className="mk-h2">Questions, answered.</h2>
+        <h2 className="mk-h2">Questions, answered</h2>
+        <p className="mk-lead mt-4">Can't find your answer? The tutorials walk through every feature.</p>
       </div>
       <div>
-        <Accordion type="single" collapsible className="divide-y divide-white/[0.07] border-y border-white/[0.07]">
+        <Accordion type="single" collapsible className="divide-y divide-[#ECECEE] border-y border-[#ECECEE]">
           {faqs.map((faq, i) => (
             <AccordionItem
               key={i}
               value={`faq-${i}`}
               className="border-0"
             >
-              <AccordionTrigger className="py-5 text-[15px] md:text-[16px] font-medium text-left text-[#EDEEF0] hover:no-underline [&>svg]:text-[#8A9099]">
+              <AccordionTrigger className="py-5 text-[15px] md:text-[16px] font-medium text-left text-[#0B0B0C] hover:no-underline [&>svg]:text-[#6B6F76]">
                 {faq.q}
               </AccordionTrigger>
-              <AccordionContent className="text-[15px] leading-relaxed pb-5" style={{ color: "#9BA1AB" }}>
+              <AccordionContent className="text-[15px] leading-relaxed pb-5" style={{ color: "#55595F" }}>
                 {faq.a}
               </AccordionContent>
             </AccordionItem>
