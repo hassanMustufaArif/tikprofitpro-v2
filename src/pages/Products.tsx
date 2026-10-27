@@ -196,8 +196,24 @@ const Products = () => {
     setSupplierResults(null);
     setSupplierError(null);
     try {
-      const data = await api.getSuppliers(productId, platform);
+      let data = await api.getSuppliers(productId, platform);
       if (reqId !== supplierReq.current) return;
+      // Photo search runs in a background worker: poll until it finishes (max ~3 min).
+      if (data?.status === "queued" && data?.job_id) {
+        for (let i = 0; i < 60; i++) {
+          await new Promise(r => setTimeout(r, 3000));
+          if (reqId !== supplierReq.current) return;
+          const job = await api.getSourcingJob(data.job_id);
+          if (job.status === "done") { data = { success: true, suppliers: job.suppliers ?? [] }; break; }
+          if (job.status === "no_match" || job.status === "failed") {
+            data = { success: false, message: job.status === "no_match"
+              ? "No supplier photo matched this product closely enough. Your credit was not used."
+              : "Photo search couldn't finish this time. Your credit was not used. Try again in a few minutes." };
+            break;
+          }
+        }
+        if (data?.status === "queued") data = { success: false, message: "Photo search is taking longer than usual. Results will be saved; reopen this product in a few minutes (free)." };
+      }
       if (data?.success === false) {
         // Nothing usable found: backend already refunded the credit
         setSupplierError(data?.message || "No matching suppliers found. Your credit was not used.");
@@ -840,7 +856,7 @@ const Products = () => {
               {supplierLoading && (
                 <div className="flex flex-col items-center py-8 gap-3">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  <p className="text-xs text-muted-foreground">Searching suppliers… 15–30 seconds</p>
+                  <p className="text-xs text-muted-foreground">Searching by product photo… usually 30–90 seconds</p>
                 </div>
               )}
               {supplierError === "upgrade" && <div className="text-center py-4 space-y-2"><p className="text-sm text-amber-400">Supplier sourcing requires a paid plan.</p><Link to="/pricing"><Button size="sm" className="bg-primary text-primary-foreground min-h-[44px]">Upgrade →</Button></Link></div>}
@@ -863,8 +879,10 @@ const Products = () => {
                           <span className="text-sm font-medium truncate max-w-[70%]">{s.supplier_name || s.name || `Supplier ${i+1}`}</span>
                           <span className={`text-xs font-semibold ${rc}`}>{profitLabel}</span>
                         </div>
-                        {s._match_method && s._match_method !== "text" && (
-                          <span className="inline-block text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{s._match_method === "photo_api" ? "Found by photo" : "Photo-checked match"}</span>
+                        {(s.similarity != null || (s._match_method && s._match_method !== "text")) && (
+                          <span className="inline-block text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                            {s.similarity != null ? `Photo match ${Math.round(Number(s.similarity) * 100)}%` : "Photo-checked match"}
+                          </span>
                         )}
                         <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                           <div>Unit Cost: <span className="text-foreground font-medium">${s.unit_cost_min ?? "—"}</span></div>
