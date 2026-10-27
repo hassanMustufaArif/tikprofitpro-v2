@@ -1,4 +1,4 @@
-export default function Sparkline({ points, color = "#00E676", width = 96, height = 28 }: { points: number[]; color?: string; width?: number; height?: number }) {
+export default function Sparkline({ points, color = "#12B76A", width = 96, height = 28 }: { points: number[]; color?: string; width?: number; height?: number }) {
   const max = Math.max(...points), min = Math.min(...points);
   const span = max - min || 1;
   const step = width / (points.length - 1);
@@ -9,7 +9,7 @@ export default function Sparkline({ points, color = "#00E676", width = 96, heigh
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+          <stop offset="0%" stopColor={color} stopOpacity="0.18" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
