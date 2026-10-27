@@ -27,30 +27,30 @@ const faqs = [
 
 export default function FAQSection() {
   return (
-    <SectionWrapper className="pb-16 md:pb-24">
-      <h2 className="text-2xl md:text-4xl font-extrabold text-center tracking-tight mb-3">
-        Frequently Asked Questions
-      </h2>
-      <p className="text-center mb-8 md:mb-10 text-sm md:text-base" style={{ color: "#888" }}>
-        Everything you need to know about TikProfitPro
-      </p>
-      <div className="max-w-3xl mx-auto">
-        <Accordion type="single" collapsible className="space-y-3">
+    <SectionWrapper className="pb-20 md:pb-28">
+      <div className="grid gap-10 md:grid-cols-[1fr,1.6fr]">
+      <div>
+        <p className="mk-eyebrow mb-3">FAQ</p>
+        <h2 className="mk-h2">Questions, answered.</h2>
+      </div>
+      <div>
+        <Accordion type="single" collapsible className="divide-y divide-white/[0.07] border-y border-white/[0.07]">
           {faqs.map((faq, i) => (
             <AccordionItem
               key={i}
               value={`faq-${i}`}
-              className="border border-white/5 bg-[#111] rounded-2xl px-5 md:px-6 hover:border-[#00ff85]/20 transition-all"
+              className="border-0"
             >
-              <AccordionTrigger className="text-sm md:text-base font-semibold text-left hover:no-underline [&>svg]:text-[#00ff85]">
+              <AccordionTrigger className="py-5 text-[15px] md:text-[16px] font-medium text-left text-[#EDEEF0] hover:no-underline [&>svg]:text-[#8A9099]">
                 {faq.q}
               </AccordionTrigger>
-              <AccordionContent className="text-sm leading-relaxed" style={{ color: "#aaa" }}>
+              <AccordionContent className="text-[15px] leading-relaxed pb-5" style={{ color: "#9BA1AB" }}>
                 {faq.a}
               </AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
+      </div>
       </div>
     </SectionWrapper>
   );
