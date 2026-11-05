@@ -43,6 +43,18 @@ export const api = {
     apiFetch(`/shops?${new URLSearchParams(params)}`),
   getCreators: (params?: Record<string, string>) =>
     apiFetch(`/creators?${new URLSearchParams(params)}`),
+  // Admin: supplier review queue
+  adminMe: () => apiFetch("/admin/me"),
+  adminQueue: (view: string, platform?: string) =>
+    apiFetch(`/admin/review/queue?${new URLSearchParams({ view, ...(platform ? { platform } : {}) })}`),
+  adminProduct: (productId: string) => apiFetch(`/admin/review/products/${productId}`),
+  adminApprove: (id: number) => apiFetch(`/admin/candidates/${id}/approve`, { method: "POST" }),
+  adminReject: (id: number) => apiFetch(`/admin/candidates/${id}/reject`, { method: "POST" }),
+  adminReopen: (id: number) => apiFetch(`/admin/candidates/${id}/reopen`, { method: "POST" }),
+  adminSetHidden: (supplierId: number, hidden: boolean) =>
+    apiFetch(`/admin/suppliers/${supplierId}/visibility`, { method: "POST", body: JSON.stringify({ hidden }) }),
+  adminAddSupplier: (data: object) =>
+    apiFetch("/admin/suppliers", { method: "POST", body: JSON.stringify(data) }),
   createCheckout: async (plan: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     const data = await apiFetch("/create-checkout", {
