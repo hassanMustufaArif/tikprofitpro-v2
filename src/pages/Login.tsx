@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
-import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import ContinueToCheckout from "@/components/ContinueToCheckout";
+import { isEmailNotConfirmed, loginErrorMessage, loginReturnUrl, readPendingPlan } from "@/lib/authFlow";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -14,59 +15,78 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
+  const [needsConfirm, setNeedsConfirm] = useState(false);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent">("idle");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { session } = useAuth();
 
-  const getPendingPlan = () => {
-    const fromUrl = searchParams.get("plan");
-    if (fromUrl) return fromUrl;
-    try {
-      return sessionStorage.getItem("pendingCheckoutPlan");
-    } catch {
-      return null;
-    }
-  };
+  // Only pro/ultimate are accepted; anything else is ignored.
+  const pendingPlan = readPendingPlan(searchParams);
 
   useEffect(() => {
     if (!session) return;
-    const plan = getPendingPlan();
-    if (plan) {
-      try { sessionStorage.removeItem("pendingCheckoutPlan"); } catch {}
-      api.createCheckout(plan).catch(() => navigate("/dashboard", { replace: true }));
-    } else {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [session, navigate]);
+    // With a pending plan we wait for an explicit "Continue to checkout" click instead of redirecting.
+    if (!pendingPlan) navigate("/dashboard", { replace: true });
+  }, [session, pendingPlan, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setNeedsConfirm(false);
+    setResendState("idle");
     setLoading(true);
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError(error.message);
+      setNeedsConfirm(isEmailNotConfirmed(error));
+      setError(loginErrorMessage(error));
       setLoading(false);
     }
     // Successful login triggers session effect above
   };
 
+  const handleResend = async () => {
+    if (!email) return;
+    setResendState("sending");
+    await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: loginReturnUrl(pendingPlan) },
+    });
+    // Same message whatever happened, so this can't be used to probe for accounts.
+    setResendState("sent");
+  };
+
   const handleSocialLogin = async (provider: "google" | "apple") => {
     setSocialLoading(provider);
     setError("");
-    const plan = getPendingPlan();
-    const redirectPath = plan ? `/login?plan=${plan}` : "/dashboard";
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}${redirectPath}` },
+      options: { redirectTo: pendingPlan ? loginReturnUrl(pendingPlan) : `${window.location.origin}/dashboard` },
     });
     if (error) {
-      setError(error.message);
+      setError("Couldn't start sign-in. Please try again.");
       setSocialLoading(null);
     }
   };
+
+  if (session && pendingPlan) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="w-full max-w-sm space-y-6">
+          <div className="text-center space-y-2">
+            <img src="/tikprofitpro_icon.svg" alt="TikProfitPro" className="h-12 w-12 mx-auto mb-2" />
+            <h1 className="text-2xl font-bold tracking-tight">
+              Tik<span style={{ color: "#25F4EE" }}>Profit</span><span style={{ color: "#FE2C55" }}>Pro</span>
+            </h1>
+          </div>
+          <ContinueToCheckout plan={pendingPlan} email={session.user?.email} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -134,6 +154,15 @@ const Login = () => {
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
+          {needsConfirm && (
+            resendState === "sent" ? (
+              <p className="text-sm text-muted-foreground">If that address needs confirming, a new link is on its way. Check your inbox and spam folder.</p>
+            ) : (
+              <Button type="button" variant="outline" className="w-full" disabled={resendState === "sending" || !email} onClick={handleResend}>
+                {resendState === "sending" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Resend confirmation email"}
+              </Button>
+            )
+          )}
 
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Log In"}
