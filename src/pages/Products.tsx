@@ -71,15 +71,21 @@ const Price = ({ p }: { p: any }) =>
 
 /* ─────────────────────────── small pieces ─────────────────────────── */
 
+// Stages written by import_kalodata.py v2 (from real week-over-week history).
+// hot/watch/stable are kept so rows from the old importer still render.
 const STAGE: Record<string, { label: string; text: string; bg: string; dot: string }> = {
-  hot:    { label: "Hot",    text: "#B42318", bg: "#FEF3F2", dot: "#F04438" },
-  rising: { label: "Rising", text: "#067647", bg: "#ECFDF3", dot: "#12B76A" },
-  watch:  { label: "Watch",  text: "#B54708", bg: "#FFFAEB", dot: "#F79009" },
-  stable: { label: "Stable", text: "#475467", bg: "#F2F4F7", dot: "#98A2B3" },
+  emerging:  { label: "Emerging",  text: "#6941C6", bg: "#F4F3FF", dot: "#7A5AF8" },
+  rising:    { label: "Rising",    text: "#067647", bg: "#ECFDF3", dot: "#12B76A" },
+  peaking:   { label: "Peaking",   text: "#B54708", bg: "#FFFAEB", dot: "#F79009" },
+  saturated: { label: "Saturated", text: "#B42318", bg: "#FEF3F2", dot: "#F04438" },
+  unknown:   { label: "New data",  text: "#475467", bg: "#F2F4F7", dot: "#98A2B3" },
+  hot:       { label: "Hot",       text: "#B42318", bg: "#FEF3F2", dot: "#F04438" },
+  watch:     { label: "Watch",     text: "#B54708", bg: "#FFFAEB", dot: "#F79009" },
+  stable:    { label: "Stable",    text: "#475467", bg: "#F2F4F7", dot: "#98A2B3" },
 };
 
 const StagePill = ({ phase }: { phase?: string }) => {
-  const s = STAGE[phase ?? "stable"] ?? STAGE.stable;
+  const s = STAGE[phase ?? "unknown"] ?? STAGE.unknown;
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[12px] font-medium whitespace-nowrap" style={{ color: s.text, background: s.bg }}>
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />
@@ -186,7 +192,7 @@ const ADDED = [
   { id: "12m", label: "Last 12 months", days: 365 },
 ];
 
-const STAGES = ["all", "hot", "rising", "watch", "stable"] as const;
+const STAGES = ["all", "emerging", "rising", "peaking", "saturated"] as const;
 
 const PLATFORMS = [
   { id: "alibaba",    label: "Alibaba",    note: "Factories, bulk" },
@@ -229,7 +235,18 @@ const Products = () => {
 
   const { data: products = [], isLoading, error } = useQuery({
     queryKey: ["products", debouncedSearch],
-    queryFn: () => (debouncedSearch ? api.searchProducts(debouncedSearch) : api.getProducts({ limit: "100" })),
+    queryFn: async () => {
+      if (debouncedSearch) return api.searchProducts(debouncedSearch);
+      // The API returns at most 100 per call (10 for Free). Page through so Pro sees the full list.
+      const all: any[] = [];
+      for (let offset = 0; offset < 2000; offset += 100) {
+        const res: any = await api.getProducts({ limit: "100", offset: String(offset) });
+        const batch: any[] = Array.isArray(res) ? res : res?.products ?? [];
+        all.push(...batch);
+        if (batch.length < 100 || res?.plan === "free") break;
+      }
+      return all;
+    },
   });
 
   useEffect(() => { setCurrentPage(1); }, [debouncedSearch, added, stage, sort, dir]);
@@ -246,7 +263,7 @@ const Products = () => {
   const rows = useMemo(() => {
     const days = ADDED.find(f => f.id === added)?.days ?? null;
     let r = days !== null ? items.filter(p => isNewProduct(p, days)) : items;
-    if (stage !== "all") r = r.filter(p => (p.trend_phase ?? "stable") === stage);
+    if (stage !== "all") r = r.filter(p => (p.trend_phase ?? "unknown") === stage);
     const val = (p: any): number => {
       switch (sort) {
         case "gmv": return Number(p.gmv_7d) || 0;
@@ -261,7 +278,7 @@ const Products = () => {
     return [...r].sort((a, b) => (dir === "desc" ? val(b) - val(a) : val(a) - val(b)));
   }, [items, added, stage, sort, dir]);
 
-  const visible = isFree ? rows.slice(0, 10) : rows.slice(0, 100);
+  const visible = isFree ? rows.slice(0, 10) : rows;
   const totalPages = Math.max(1, Math.ceil(visible.length / ITEMS_PER_PAGE));
   const pageRows = visible.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   const totalGmv = visible.reduce((s, p) => s + (Number(p.gmv_7d) || 0), 0);
@@ -312,7 +329,16 @@ const Products = () => {
         queryClient.invalidateQueries({ queryKey: ["credits"] });
       } else {
         const results = data?.suppliers ?? data?.results ?? (Array.isArray(data) ? data : []);
-        setSupplierResults(results.slice(0, 5));
+        const seen = new Set<string>();
+        const ranked = [...results]
+          .sort((a: any, b: any) => (Number(b.similarity) || 0) - (Number(a.similarity) || 0) || (Number(a.unit_cost_min) || 0) - (Number(b.unit_cost_min) || 0))
+          .filter((s: any) => {
+            const k = s.external_product_id ? `id:${s.external_product_id}` : `${(s.supplier_name ?? "").toLowerCase()}|${Number(s.unit_cost_min).toFixed(2)}`;
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+          });
+        setSupplierResults(ranked.slice(0, 5));
         queryClient.invalidateQueries({ queryKey: ["user-credits-nav"] });
         queryClient.invalidateQueries({ queryKey: ["credits"] });
       }
@@ -614,7 +640,7 @@ const Products = () => {
                     <td className="app-td app-num hidden lg:table-cell">{fmtNum(c.products_promoted)}</td>
                     <td className="app-td app-num hidden lg:table-cell">{Number(c.conversion_rate) ? `${c.conversion_rate}%` : "—"}</td>
                     <td className="app-td text-right whitespace-nowrap">
-                      {isFree ? (
+                      {isFree || c.contact_locked ? (
                         <Link to="/pricing" className="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground"><Lock className="h-3 w-3" /> Pro</Link>
                       ) : c.contact_email && c.contact_email !== "null" ? (
                         <a href={`mailto:${c.contact_email}`} className="text-[12px] font-medium text-foreground underline underline-offset-2">Email</a>

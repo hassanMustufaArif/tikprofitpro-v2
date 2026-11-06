@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Layout from "@/components/Layout";
 import Seo from "@/components/Seo";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminReview from "./pages/AdminReview";
 import Landing from "./pages/Landing";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><Layout><Index /></Layout></ProtectedRoute>} />
             <Route path="/products" element={<Layout><Products /></Layout>} />
             <Route path="/settings" element={<Layout><SettingsPage /></Layout>} />
+            <Route path="/admin/review" element={<ProtectedRoute><Layout><AdminReview /></Layout></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

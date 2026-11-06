@@ -252,23 +252,6 @@ const Dashboard = () => {
         )}
       </div>
 
-      <div className="rounded-lg border border-border bg-card p-4 md:p-6">
-        <h2 className="font-bold mb-3 md:mb-4 text-base md:text-lg">Recent Activity</h2>
-        <div className="space-y-3">
-          {[
-            { text: "New hot product detected: LED Sunset Lamp", time: "2 min ago" },
-            { text: "Virality spike: Portable Blender +340%", time: "15 min ago" },
-            { text: "Price drop alert: Magnetic Phone Mount", time: "1 hr ago" },
-            { text: "New supplier match: Beauty Tools Co.", time: "3 hrs ago" },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-2">
-              <span className="text-sm md:text-base truncate">{item.text}</span>
-              <span className="text-sm text-muted-foreground shrink-0">{item.time}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {isFree && (
         <div className="rounded-lg border border-border bg-gradient-to-r from-emerald-500/10 to-teal-500/10 p-4 md:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
