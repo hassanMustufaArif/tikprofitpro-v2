@@ -140,7 +140,7 @@ export const api = {
   getCredits: () => apiFetch("/credits"),
   getSourcingJob: (jobId: number) => apiFetch(`/sourcing/jobs/${jobId}`),
   // The server looks up the product's stored image from product_id; never send an image URL.
-  generateListing: (data: { product_id: string | number; product_name: string; price: number; category: string }) =>
+  generateListing: (data: { product_id: string; product_name: string; price: number; category: string }) =>
     apiFetch("/generate-listing", { method: "POST", body: JSON.stringify(data) }),
   getShops: (params?: Record<string, string>) =>
     apiFetch(`/shops?${new URLSearchParams(params)}`),

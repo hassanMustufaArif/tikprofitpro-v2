@@ -69,7 +69,7 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
     try {
       // Signed-in call; backend looks at the photo and avoids generic marketing copy.
       const parsed = await api.generateListing({
-        product_id: product.id,
+        product_id: String(product.id),
         product_name: title,
         price: parseFloat(price) || 0,
         category: product.category ?? "",
