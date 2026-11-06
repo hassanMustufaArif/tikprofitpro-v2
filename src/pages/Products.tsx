@@ -447,7 +447,7 @@ const Products = () => {
           ) : error ? (
             isApiError(error) && error.kind === "upgrade" ? (
               <UpgradeRow text={error.message} />
-            ) : isApiError(error) && (error.kind === "rate_limit" || error.kind === "auth") ? (
+            ) : isApiError(error) && ["rate_limit", "auth", "forbidden"].includes(error.kind) ? (
               <Empty>{error.message}</Empty>
             ) : (
               <Empty>Products didn't load. Refresh the page to try again.</Empty>

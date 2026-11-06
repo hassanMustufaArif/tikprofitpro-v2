@@ -12,10 +12,11 @@ export const API_MESSAGES = {
   rateLimited: "Too many requests, try again in a minute.",
   server: "Something went wrong, please try again.",
   network: "Couldn't reach the server. Check your connection and try again.",
+  forbidden: "You don't have access to this.",
   generic: "Request failed. Please try again.",
 } as const;
 
-export type ApiErrorKind = "auth" | "upgrade" | "confirm_email" | "rate_limit" | "server" | "network" | "other";
+export type ApiErrorKind = "auth" | "upgrade" | "confirm_email" | "forbidden" | "rate_limit" | "server" | "network" | "other";
 
 /**
  * Error thrown by every API call. `message` is always safe to show to users.
@@ -52,30 +53,41 @@ function userText(v: unknown): string | undefined {
 }
 
 async function toApiError(res: Response): Promise<ApiError> {
-  let body: any = undefined;
+  let body: unknown = undefined;
   try {
     const text = await res.text();
     try { body = JSON.parse(text); } catch { body = undefined; } // non-JSON bodies are never shown
   } catch { /* ignore */ }
 
-  const detail = body && typeof body === "object" ? body.detail : undefined;
-  const code: string | undefined =
-    detail && typeof detail === "object" && typeof detail.code === "string" ? detail.code : undefined;
-  const detailText =
-    userText(detail) ??
-    (detail && typeof detail === "object" ? userText(detail.message) ?? userText(detail.detail) : undefined);
+  const detail: unknown = body && typeof body === "object" ? (body as Record<string, unknown>).detail : undefined;
+  const obj = detail && typeof detail === "object" ? (detail as Record<string, unknown>) : undefined;
+  const code: string | undefined = typeof obj?.code === "string" ? obj.code : undefined;
+  const detailText = userText(detail) ?? (obj ? userText(obj.message) ?? userText(obj.detail) : undefined);
 
   const status = res.status;
   if (status === 401) return new ApiError(API_MESSAGES.signIn, { status, kind: "auth", detail, code });
   if (status === 403) {
-    const kind: ApiErrorKind = detailText && /confirm.*email/i.test(detailText) ? "confirm_email" : "upgrade";
-    return new ApiError(detailText ?? API_MESSAGES.upgrade, { status, kind, detail, code });
+    if (code === "email_unconfirmed" || (detailText && /confirm.*email/i.test(detailText))) {
+      return new ApiError(detailText ?? "Confirm your email to use credits.", { status, kind: "confirm_email", detail, code });
+    }
+    // Plan gates (e.g. a product outside the free top 10) -> upgrade prompt with the server's text.
+    if (!detailText || /upgrade|\bpro\b|plan|paid/i.test(detailText)) {
+      return new ApiError(detailText ?? API_MESSAGES.upgrade, { status, kind: "upgrade", detail, code });
+    }
+    // Bare "Forbidden" / "Admins only" and similar.
+    const text = /^forbidden\.?$/i.test(detailText) ? API_MESSAGES.forbidden : detailText;
+    return new ApiError(text, { status, kind: "forbidden", detail, code });
   }
-  if (status === 429) return new ApiError(API_MESSAGES.rateLimited, { status, kind: "rate_limit", detail, code });
+  if (status === 429) {
+    // Server texts like "An Amazon search is already running for you" are friendlier than the generic one.
+    const text = detailText && !/rate limit exceeded/i.test(detailText) ? detailText : API_MESSAGES.rateLimited;
+    return new ApiError(text, { status, kind: "rate_limit", detail, code });
+  }
   if (status >= 500) return new ApiError(API_MESSAGES.server, { status, kind: "server", detail, code });
   return new ApiError(detailText ?? API_MESSAGES.generic, { status, kind: "other", detail, code });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- responses are untyped across the app
 async function send(path: string, init: RequestInit): Promise<any> {
   let res: Response;
   try {
