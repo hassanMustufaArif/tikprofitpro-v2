@@ -53,8 +53,9 @@ const App = () => (
 
             {/* Dashboard pages - protected + WITH sidebar */}
             <Route path="/dashboard" element={<ProtectedRoute><Layout><Index /></Layout></ProtectedRoute>} />
+            {/* Products stays public on purpose: signed-out visitors browse the free top 10 (backend-gated) with Log in / Sign up in the sidebar. */}
             <Route path="/products" element={<Layout><Products /></Layout>} />
-            <Route path="/settings" element={<Layout><SettingsPage /></Layout>} />
+            <Route path="/settings" element={<ProtectedRoute><Layout><SettingsPage /></Layout></ProtectedRoute>} />
             <Route path="/admin/review" element={<ProtectedRoute><Layout><AdminReview /></Layout></ProtectedRoute>} />
             <Route path="/admin/upload" element={<ProtectedRoute><Layout><AdminUpload /></Layout></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
