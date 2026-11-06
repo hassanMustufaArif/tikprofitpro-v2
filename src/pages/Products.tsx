@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import ListProductModal from "@/components/ListProductModal";
 import { Link } from "react-router-dom";
-import { api } from "@/lib/api";
+import { api, isApiError, API_MESSAGES } from "@/lib/api";
 import { usePlan } from "@/hooks/usePlan";
 import { calcProfit, DEFAULT_CREATOR_PCT, DEFAULT_REFERRAL_PCT } from "@/lib/fees";
 import { safeUrl, safeImageSrc } from "@/lib/safeUrl";
@@ -222,6 +222,8 @@ const Products = () => {
   const [supplierResults, setSupplierResults] = useState<any[] | null>(null);
   const [supplierLoading, setSupplierLoading] = useState(false);
   const [supplierError, setSupplierError] = useState<string | null>(null);
+  // Optional server message shown with the "upgrade" / "confirm_email" prompts.
+  const [supplierErrorText, setSupplierErrorText] = useState<string | null>(null);
   const [selectedShop, setSelectedShop] = useState<any>(null);
   const [listProductItem, setListProductItem] = useState<any>(null);
   const [shopSearch, setShopSearch] = useState("");
@@ -299,6 +301,7 @@ const Products = () => {
     setSupplierPlatform(null);
     setSupplierResults(null);
     setSupplierError(null);
+    setSupplierErrorText(null);
   };
 
   const searchPlatform = async (platform: string) => {
@@ -308,6 +311,7 @@ const Products = () => {
     setSupplierLoading(true);
     setSupplierResults(null);
     setSupplierError(null);
+    setSupplierErrorText(null);
     try {
       let data = await api.getSuppliers(supplierProduct.id, platform);
       if (reqId !== supplierReq.current) return;
@@ -346,11 +350,13 @@ const Products = () => {
       }
     } catch (err: any) {
       if (reqId !== supplierReq.current) return;
-      let detail: any = null;
-      try { detail = JSON.parse(err?.message ?? "")?.detail; } catch { /* plain text */ }
-      if (detail?.code === "no_credits") setSupplierError("no_credits");
-      else if (typeof detail === "string") setSupplierError(detail);
-      else setSupplierError("Supplier search failed. Your credit was not used.");
+      if (!isApiError(err)) setSupplierError("Supplier search failed. Your credit was not used.");
+      else if (err.code === "no_credits") setSupplierError("no_credits");
+      else if (err.kind === "auth") setSupplierError("signin");
+      else if (err.kind === "confirm_email") { setSupplierError("confirm_email"); setSupplierErrorText(err.message); }
+      else if (err.kind === "upgrade") { setSupplierError("upgrade"); setSupplierErrorText(err.message === API_MESSAGES.upgrade ? null : err.message); }
+      else if (err.kind === "server") setSupplierError(`${API_MESSAGES.server} Your credit was not used.`);
+      else setSupplierError(err.message);
       queryClient.invalidateQueries({ queryKey: ["credits"] });
     } finally {
       if (reqId === supplierReq.current) setSupplierLoading(false);
@@ -439,7 +445,13 @@ const Products = () => {
           {isLoading ? (
             <div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
           ) : error ? (
-            <Empty>Products didn't load. Refresh the page to try again.</Empty>
+            isApiError(error) && error.kind === "upgrade" ? (
+              <UpgradeRow text={error.message} />
+            ) : isApiError(error) && (error.kind === "rate_limit" || error.kind === "auth") ? (
+              <Empty>{error.message}</Empty>
+            ) : (
+              <Empty>Products didn't load. Refresh the page to try again.</Empty>
+            )
           ) : (
             <>
               {/* Desktop table */}
@@ -741,8 +753,20 @@ const Products = () => {
 
             {supplierError === "upgrade" && (
               <div className="rounded-lg border border-border p-4 flex items-center justify-between gap-3">
-                <span className="text-[13px]">Supplier lookups are on paid plans.</span>
+                <span className="text-[13px]">{supplierErrorText || "Supplier lookups for this product are on paid plans."}</span>
                 <Link to="/pricing" className="app-btn">See plans</Link>
+              </div>
+            )}
+            {supplierError === "signin" && (
+              <div className="rounded-lg border border-border p-4 flex items-center justify-between gap-3">
+                <span className="text-[13px]">Log in to look up suppliers. New accounts get free credits.</span>
+                <Link to="/login" className="app-btn">Log in</Link>
+              </div>
+            )}
+            {supplierError === "confirm_email" && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-1">
+                <div className="text-[13px] font-medium text-amber-900">{supplierErrorText || "Confirm your email to use credits"}</div>
+                <div className="text-[12px] text-amber-800">Open the confirmation link we emailed you, then try again. No credit was used.</div>
               </div>
             )}
             {supplierError === "no_credits" && (
@@ -753,7 +777,7 @@ const Products = () => {
                 <Link to="/pricing" className="app-btn">Upgrade</Link>
               </div>
             )}
-            {supplierError && !["upgrade", "no_credits"].includes(supplierError) && (
+            {supplierError && !["upgrade", "no_credits", "signin", "confirm_email"].includes(supplierError) && (
               <div className="rounded-lg border border-border bg-muted/40 p-4 text-[13px] text-foreground">{supplierError}</div>
             )}
 

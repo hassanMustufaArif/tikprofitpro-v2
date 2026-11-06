@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { api } from "@/lib/api";
+import { api, isApiError, API_MESSAGES } from "@/lib/api";
+import { Link } from "react-router-dom";
 import { safeImageSrc } from "@/lib/safeUrl";
 import { X, Copy, ExternalLink, Check, ImagePlus, DollarSign, ListChecks, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -60,16 +61,18 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
   const [copied, setCopied] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [missingInfo, setMissingInfo] = useState<string[]>([]);
+  const [genError, setGenError] = useState<{ text: string; upgrade?: boolean; signIn?: boolean } | null>(null);
 
   const generateWithAI = async () => {
     setGenerating(true);
+    setGenError(null);
     try {
       // Signed-in call; backend looks at the photo and avoids generic marketing copy.
       const parsed = await api.generateListing({
+        product_id: product.id,
         product_name: title,
         price: parseFloat(price) || 0,
         category: product.category ?? "",
-        image_url: product.image_storage_url || product.thumbnail_url || "",
       });
       if (parsed.title) setTitle(parsed.title);
       if (parsed.description) setDescription(parsed.description);
@@ -77,7 +80,11 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
       if (parsed.sellingPoints) setSellingPoints(parsed.sellingPoints);
       if (Array.isArray(parsed.missing_info) && parsed.missing_info.length) setMissingInfo(parsed.missing_info);
     } catch (err) {
-      console.error("AI generation failed:", err);
+      if (isApiError(err)) {
+        setGenError({ text: err.message, upgrade: err.kind === "upgrade", signIn: err.kind === "auth" });
+      } else {
+        setGenError({ text: API_MESSAGES.server });
+      }
     } finally {
       setGenerating(false);
     }
@@ -263,6 +270,13 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
                   onChange={(e) => setDescription(e.target.value)}
                   className="mt-1 bg-background"
                 />
+                {genError && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {genError.text}
+                    {genError.upgrade && <> <Link to="/pricing" className="underline">See plans</Link></>}
+                    {genError.signIn && <> <Link to="/login" className="underline">Log in</Link></>}
+                  </p>
+                )}
               </div>
 
               <div>

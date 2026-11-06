@@ -1,8 +1,91 @@
 import { supabase } from "@/lib/supabase";
+import { safeUrl } from "@/lib/safeUrl";
 
 const BASE_URL = "https://api.tikprofitpro.shop";
 
 const API_KEY = "88f6c492c9fcde83687bce9d9cce0b03fdd5b84ca962de228e0dc4ad5d2bad20";
+
+/** Messages shown to users. Raw backend text (stack traces, DB errors) is never shown. */
+export const API_MESSAGES = {
+  signIn: "Please sign in to continue.",
+  upgrade: "This is available on paid plans. Upgrade to unlock it.",
+  rateLimited: "Too many requests, try again in a minute.",
+  server: "Something went wrong, please try again.",
+  network: "Couldn't reach the server. Check your connection and try again.",
+  generic: "Request failed. Please try again.",
+} as const;
+
+export type ApiErrorKind = "auth" | "upgrade" | "confirm_email" | "rate_limit" | "server" | "network" | "other";
+
+/**
+ * Error thrown by every API call. `message` is always safe to show to users.
+ * `detail` keeps the parsed JSON `detail` (string or object, e.g. {code: "no_credits"})
+ * for callers that branch on it; never render it directly.
+ */
+export class ApiError extends Error {
+  status: number;
+  kind: ApiErrorKind;
+  detail: unknown;
+  code?: string;
+
+  constructor(message: string, opts: { status: number; kind: ApiErrorKind; detail?: unknown; code?: string }) {
+    super(message);
+    this.name = "ApiError";
+    this.status = opts.status;
+    this.kind = opts.kind;
+    this.detail = opts.detail;
+    this.code = opts.code;
+  }
+}
+
+export const isApiError = (e: unknown): e is ApiError => e instanceof ApiError;
+
+// Anything that looks like an internal error rather than a sentence meant for users.
+const LEAKY = /traceback|exception|stack|psycopg|postgres|postgrest|sqlstate|syntax error|relation "|column "|duplicate key|violates|errno|\.py\b|line \d+|<html|supabase\.co|https?:\/\/\S+\/rest\//i;
+
+/** Returns text only if it reads like a short, user-facing message. */
+function userText(v: unknown): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const t = v.trim();
+  if (!t || t.length > 240 || LEAKY.test(t)) return undefined;
+  return t;
+}
+
+async function toApiError(res: Response): Promise<ApiError> {
+  let body: any = undefined;
+  try {
+    const text = await res.text();
+    try { body = JSON.parse(text); } catch { body = undefined; } // non-JSON bodies are never shown
+  } catch { /* ignore */ }
+
+  const detail = body && typeof body === "object" ? body.detail : undefined;
+  const code: string | undefined =
+    detail && typeof detail === "object" && typeof detail.code === "string" ? detail.code : undefined;
+  const detailText =
+    userText(detail) ??
+    (detail && typeof detail === "object" ? userText(detail.message) ?? userText(detail.detail) : undefined);
+
+  const status = res.status;
+  if (status === 401) return new ApiError(API_MESSAGES.signIn, { status, kind: "auth", detail, code });
+  if (status === 403) {
+    const kind: ApiErrorKind = detailText && /confirm.*email/i.test(detailText) ? "confirm_email" : "upgrade";
+    return new ApiError(detailText ?? API_MESSAGES.upgrade, { status, kind, detail, code });
+  }
+  if (status === 429) return new ApiError(API_MESSAGES.rateLimited, { status, kind: "rate_limit", detail, code });
+  if (status >= 500) return new ApiError(API_MESSAGES.server, { status, kind: "server", detail, code });
+  return new ApiError(detailText ?? API_MESSAGES.generic, { status, kind: "other", detail, code });
+}
+
+async function send(path: string, init: RequestInit): Promise<any> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, init);
+  } catch {
+    throw new ApiError(API_MESSAGES.network, { status: 0, kind: "network" });
+  }
+  if (!res.ok) throw await toApiError(res);
+  return res.json();
+}
 
 async function apiFetch(path: string, options?: RequestInit) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -17,27 +100,20 @@ async function apiFetch(path: string, options?: RequestInit) {
     headers["Authorization"] = "Bearer " + session.access_token;
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  return send(path, { ...options, headers });
 }
 
 async function apiUpload(path: string, form: FormData) {
   const { data: { session } } = await supabase.auth.getSession();
   const headers: Record<string, string> = { "X-API-Key": API_KEY };
   if (session?.access_token) headers["Authorization"] = "Bearer " + session.access_token;
-  const res = await fetch(`${BASE_URL}${path}`, { method: "POST", body: form, headers });
-  if (!res.ok) {
-    const text = await res.text();
-    let msg = text;
-    try { msg = JSON.parse(text).detail || text; } catch { /* plain text */ }
-    throw new Error(msg);
-  }
-  return res.json();
+  return send(path, { method: "POST", body: form, headers });
 }
+
+export const CHECKOUT_PLANS = ["pro", "ultimate"] as const;
+export type CheckoutPlan = (typeof CHECKOUT_PLANS)[number];
+export const isCheckoutPlan = (p: unknown): p is CheckoutPlan =>
+  typeof p === "string" && (CHECKOUT_PLANS as readonly string[]).includes(p);
 
 export const api = {
   getStats: () => apiFetch("/stats"),
@@ -51,7 +127,8 @@ export const api = {
     apiFetch(`/products/${product_id}/suppliers/${platform}`),
   getCredits: () => apiFetch("/credits"),
   getSourcingJob: (jobId: number) => apiFetch(`/sourcing/jobs/${jobId}`),
-  generateListing: (data: { product_name: string; price: number; category: string; image_url?: string }) =>
+  // The server looks up the product's stored image from product_id; never send an image URL.
+  generateListing: (data: { product_id: string | number; product_name: string; price: number; category: string }) =>
     apiFetch("/generate-listing", { method: "POST", body: JSON.stringify(data) }),
   getShops: (params?: Record<string, string>) =>
     apiFetch(`/shops?${new URLSearchParams(params)}`),
@@ -82,14 +159,15 @@ export const api = {
   adminAddSupplier: (data: object) =>
     apiFetch("/admin/suppliers", { method: "POST", body: JSON.stringify(data) }),
   createCheckout: async (plan: string) => {
+    if (!isCheckoutPlan(plan)) throw new ApiError("Unknown plan. Pick a plan on the pricing page.", { status: 0, kind: "other" });
     const { data: { session } } = await supabase.auth.getSession();
     const data = await apiFetch("/create-checkout", {
       method: "POST",
       body: JSON.stringify({ email: session?.user?.email ?? '', plan }),
     });
-    const checkoutUrl = data.checkout_url ?? data.url;
-    if (!checkoutUrl) {
-      throw new Error('No checkout URL returned. Response: ' + JSON.stringify(data));
+    const checkoutUrl = safeUrl(data?.checkout_url ?? data?.url);
+    if (!checkoutUrl || new URL(checkoutUrl).protocol !== "https:") {
+      throw new ApiError(API_MESSAGES.server, { status: 0, kind: "server" });
     }
     window.location.href = checkoutUrl;
   },

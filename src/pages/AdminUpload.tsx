@@ -215,7 +215,7 @@ const AdminUpload = () => {
         </div>
         {importing && <p className="text-[12px] text-muted-foreground">Wait for the import to finish first.</p>}
         {srcMsg && <p className="text-[13px] text-emerald-700">{srcMsg}</p>}
-        {runs.isError && <p className="text-[12px] text-amber-700">{String((runs.error as any)?.message || "").includes("GITHUB_ACTIONS_TOKEN") ? "Not set up yet: add GITHUB_ACTIONS_TOKEN on Render." : "Couldn't load recent runs."}</p>}
+        {runs.isError && <p className="text-[12px] text-amber-700">{JSON.stringify((runs.error as any)?.detail ?? (runs.error as any)?.message ?? "").includes("GITHUB_ACTIONS_TOKEN") ? "Not set up yet: add GITHUB_ACTIONS_TOKEN on Render." : "Couldn't load recent runs."}</p>}
         {(runs.data?.runs ?? []).length > 0 && (
           <div className="space-y-1">
             <div className="text-[12px] font-medium text-muted-foreground">Recent runs</div>
