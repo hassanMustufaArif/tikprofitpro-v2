@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { api } from "@/lib/api";
+import { safeImageSrc } from "@/lib/safeUrl";
 import { X, Copy, ExternalLink, Check, ImagePlus, DollarSign, ListChecks, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,7 +53,10 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
   const [condition, setCondition] = useState("New");
   const [description, setDescription] = useState("");
   const [sellingPoints, setSellingPoints] = useState("");
-  const [images, setImages] = useState<string[]>(product.thumbnail_url ? [product.thumbnail_url] : []);
+  const [images, setImages] = useState<string[]>(() => {
+    const first = safeImageSrc(product.thumbnail_url);
+    return first ? [first] : [];
+  });
   const [copied, setCopied] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [missingInfo, setMissingInfo] = useState<string[]>([]);
@@ -299,7 +303,7 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
                     key={i}
                     className="relative aspect-square rounded-lg overflow-hidden border border-border group"
                   >
-                    <img src={src} alt="" className="w-full h-full object-cover" />
+                    <img src={safeImageSrc(src)} alt="" className="w-full h-full object-cover" />
                     <button
                       onClick={() => removeImage(i)}
                       className="absolute top-1 right-1 bg-background/80 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -408,7 +412,7 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
               <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                 {images.length > 0 && (
                   <img
-                    src={images[0]}
+                    src={safeImageSrc(images[0])}
                     alt="preview"
                     className="w-full aspect-[4/3] object-cover rounded-lg"
                   />
@@ -460,7 +464,7 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
                   variant="outline"
                   className="flex-1 min-h-[44px]"
                   onClick={() =>
-                    window.open("https://seller-us.tiktok.com", "_blank")
+                    window.open("https://seller-us.tiktok.com", "_blank", "noopener,noreferrer")
                   }
                 >
                   <ExternalLink className="h-4 w-4" /> Open Seller Center

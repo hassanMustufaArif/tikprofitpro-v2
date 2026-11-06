@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { usePlan } from "@/hooks/usePlan";
 import { calcProfit, DEFAULT_CREATOR_PCT, DEFAULT_REFERRAL_PCT } from "@/lib/fees";
+import { safeUrl, safeImageSrc } from "@/lib/safeUrl";
 
 /* ─────────────────────────── formatting ─────────────────────────── */
 
@@ -112,8 +113,9 @@ const Delta = ({ v }: { v: any }) => {
   return <div className={`text-[11px] tabular-nums ${Number(v) > 0 ? "app-up" : "app-down"}`}>{t}</div>;
 };
 
-const Thumb = ({ src, alt, size = 40 }: { src?: string; alt: string; size?: number }) => {
+const Thumb = ({ src: rawSrc, alt, size = 40 }: { src?: string; alt: string; size?: number }) => {
   const [broken, setBroken] = useState(false);
+  const src = safeImageSrc(rawSrc);
   return src && !broken ? (
     <img src={src} alt={alt} onError={() => setBroken(true)} loading="lazy"
       className="rounded-md object-cover shrink-0 border border-border bg-muted" style={{ width: size, height: size }} />
@@ -666,8 +668,8 @@ const Products = () => {
             sub={<div className="flex items-center gap-2"><span>{leafCategory(selectedProduct.category)}</span><StagePill phase={selectedProduct.trend_phase} /></div>}
           />
           <div className="p-5 space-y-5">
-            {(selectedProduct.image_storage_url || selectedProduct.thumbnail_url) && (
-              <img src={selectedProduct.image_storage_url || selectedProduct.thumbnail_url} alt={selectedProduct.product_name}
+            {safeImageSrc(selectedProduct.image_storage_url || selectedProduct.thumbnail_url) && (
+              <img src={safeImageSrc(selectedProduct.image_storage_url || selectedProduct.thumbnail_url)} alt={selectedProduct.product_name}
                 className="w-full max-h-[320px] object-contain rounded-lg border border-border bg-muted/40"
                 onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
             )}
@@ -684,8 +686,8 @@ const Products = () => {
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <button onClick={() => openSupplier(selectedProduct)} className="app-btn h-10 flex-1"><Factory className="h-4 w-4" strokeWidth={1.75} /> Find suppliers</button>
-              {selectedProduct.tiktok_product_url && (
-                <a href={selectedProduct.tiktok_product_url} target="_blank" rel="noopener noreferrer" className="app-btn-ghost h-10 flex-1">
+              {safeUrl(selectedProduct.tiktok_product_url) && (
+                <a href={safeUrl(selectedProduct.tiktok_product_url)} target="_blank" rel="noopener noreferrer" className="app-btn-ghost h-10 flex-1">
                   TikTok Shop page <ArrowUpRight className="h-3.5 w-3.5" />
                 </a>
               )}
@@ -797,8 +799,8 @@ const Products = () => {
                             ) : "—"}
                           </td>
                           <td className="app-td text-right">
-                            {s.supplier_url && (
-                              <a href={s.supplier_url} target="_blank" rel="noopener noreferrer" aria-label="Open supplier"
+                            {safeUrl(s.supplier_url) && (
+                              <a href={safeUrl(s.supplier_url)} target="_blank" rel="noopener noreferrer" aria-label="Open supplier"
                                 className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-muted hover:text-foreground">
                                 <ExternalLink className="h-3.5 w-3.5" />
                               </a>
@@ -834,8 +836,8 @@ const Products = () => {
               <Stat label="Own account revenue" value={fmtUsd(selectedShop.self_operated_revenue)} />
               <Stat label="Affiliate revenue" value={fmtUsd(selectedShop.affiliate_revenue)} />
             </div>
-            {selectedShop.shop_url && (
-              <a href={selectedShop.shop_url} target="_blank" rel="noopener noreferrer" className="app-btn h-10 w-full">
+            {safeUrl(selectedShop.shop_url) && (
+              <a href={safeUrl(selectedShop.shop_url)} target="_blank" rel="noopener noreferrer" className="app-btn h-10 w-full">
                 Open shop <ArrowUpRight className="h-3.5 w-3.5" />
               </a>
             )}
