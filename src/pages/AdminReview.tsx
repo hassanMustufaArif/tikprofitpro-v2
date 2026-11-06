@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, X, Undo2, EyeOff, Eye, ExternalLink, Loader2, Plus } from "lucide-react";
 import { api } from "@/lib/api";
@@ -147,7 +148,10 @@ const AdminReview = () => {
   return (
     <div className="space-y-4 pb-20 md:pb-6">
       <div>
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Supplier review</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Supplier review</h1>
+          <Link to="/admin/upload" className="text-[13px] underline">Weekly upload</Link>
+        </div>
         <p className="text-muted-foreground mt-1 text-sm">
           Approve same-product matches the photo check scored below {pct(d?.min_similarity ?? 0.8)}, hide wrong ones, or add a link yourself.
         </p>
