@@ -25,6 +25,20 @@ async function apiFetch(path: string, options?: RequestInit) {
   return res.json();
 }
 
+async function apiUpload(path: string, form: FormData) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const headers: Record<string, string> = { "X-API-Key": API_KEY };
+  if (session?.access_token) headers["Authorization"] = "Bearer " + session.access_token;
+  const res = await fetch(`${BASE_URL}${path}`, { method: "POST", body: form, headers });
+  if (!res.ok) {
+    const text = await res.text();
+    let msg = text;
+    try { msg = JSON.parse(text).detail || text; } catch { /* plain text */ }
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
 export const api = {
   getStats: () => apiFetch("/stats"),
   getProducts: (params?: Record<string, string>) =>
@@ -53,6 +67,18 @@ export const api = {
   adminReopen: (id: number) => apiFetch(`/admin/candidates/${id}/reopen`, { method: "POST" }),
   adminSetHidden: (supplierId: number, hidden: boolean) =>
     apiFetch(`/admin/suppliers/${supplierId}/visibility`, { method: "POST", body: JSON.stringify({ hidden }) }),
+  adminImport: (files: File[], opts: { dryRun: boolean; deactivate: boolean }) => {
+    const form = new FormData();
+    files.forEach((f) => form.append("files", f));
+    form.append("dry_run", String(opts.dryRun));
+    form.append("deactivate", String(opts.deactivate));
+    form.append("rehost", "true");
+    return apiUpload("/admin/import", form);
+  },
+  adminImportStatus: (jobId: string) => apiFetch(`/admin/import/${jobId}`),
+  adminSourcingRun: (data: { mode: "new" | "all"; max_requests: number; limit?: number }) =>
+    apiFetch("/admin/sourcing/run", { method: "POST", body: JSON.stringify(data) }),
+  adminSourcingRuns: () => apiFetch("/admin/sourcing/runs"),
   adminAddSupplier: (data: object) =>
     apiFetch("/admin/suppliers", { method: "POST", body: JSON.stringify(data) }),
   createCheckout: async (plan: string) => {
