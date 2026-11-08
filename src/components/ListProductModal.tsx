@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
-import { api } from "@/lib/api";
+import { api, isApiError, API_MESSAGES } from "@/lib/api";
+import { Link } from "react-router-dom";
+import { safeImageSrc } from "@/lib/safeUrl";
 import { X, Copy, ExternalLink, Check, ImagePlus, DollarSign, ListChecks, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,20 +54,25 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
   const [condition, setCondition] = useState("New");
   const [description, setDescription] = useState("");
   const [sellingPoints, setSellingPoints] = useState("");
-  const [images, setImages] = useState<string[]>(product.thumbnail_url ? [product.thumbnail_url] : []);
+  const [images, setImages] = useState<string[]>(() => {
+    const first = safeImageSrc(product.thumbnail_url);
+    return first ? [first] : [];
+  });
   const [copied, setCopied] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [missingInfo, setMissingInfo] = useState<string[]>([]);
+  const [genError, setGenError] = useState<{ text: string; upgrade?: boolean; signIn?: boolean } | null>(null);
 
   const generateWithAI = async () => {
     setGenerating(true);
+    setGenError(null);
     try {
       // Signed-in call; backend looks at the photo and avoids generic marketing copy.
       const parsed = await api.generateListing({
+        product_id: String(product.id),
         product_name: title,
         price: parseFloat(price) || 0,
         category: product.category ?? "",
-        image_url: product.image_storage_url || product.thumbnail_url || "",
       });
       if (parsed.title) setTitle(parsed.title);
       if (parsed.description) setDescription(parsed.description);
@@ -73,7 +80,11 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
       if (parsed.sellingPoints) setSellingPoints(parsed.sellingPoints);
       if (Array.isArray(parsed.missing_info) && parsed.missing_info.length) setMissingInfo(parsed.missing_info);
     } catch (err) {
-      console.error("AI generation failed:", err);
+      if (isApiError(err)) {
+        setGenError({ text: err.message, upgrade: err.kind === "upgrade", signIn: err.kind === "auth" });
+      } else {
+        setGenError({ text: API_MESSAGES.server });
+      }
     } finally {
       setGenerating(false);
     }
@@ -259,6 +270,13 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
                   onChange={(e) => setDescription(e.target.value)}
                   className="mt-1 bg-background"
                 />
+                {genError && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {genError.text}
+                    {genError.upgrade && <> <Link to="/pricing" className="underline">See plans</Link></>}
+                    {genError.signIn && <> <Link to="/login" className="underline">Log in</Link></>}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -299,7 +317,7 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
                     key={i}
                     className="relative aspect-square rounded-lg overflow-hidden border border-border group"
                   >
-                    <img src={src} alt="" className="w-full h-full object-cover" />
+                    <img src={safeImageSrc(src)} alt="" className="w-full h-full object-cover" />
                     <button
                       onClick={() => removeImage(i)}
                       className="absolute top-1 right-1 bg-background/80 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -408,7 +426,7 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
               <div className="rounded-lg border border-border bg-card p-4 space-y-3">
                 {images.length > 0 && (
                   <img
-                    src={images[0]}
+                    src={safeImageSrc(images[0])}
                     alt="preview"
                     className="w-full aspect-[4/3] object-cover rounded-lg"
                   />
@@ -460,7 +478,7 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
                   variant="outline"
                   className="flex-1 min-h-[44px]"
                   onClick={() =>
-                    window.open("https://seller-us.tiktok.com", "_blank")
+                    window.open("https://seller-us.tiktok.com", "_blank", "noopener,noreferrer")
                   }
                 >
                   <ExternalLink className="h-4 w-4" /> Open Seller Center

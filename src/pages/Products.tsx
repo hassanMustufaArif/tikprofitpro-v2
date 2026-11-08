@@ -7,9 +7,10 @@ import {
 } from "lucide-react";
 import ListProductModal from "@/components/ListProductModal";
 import { Link } from "react-router-dom";
-import { api } from "@/lib/api";
+import { api, isApiError, API_MESSAGES } from "@/lib/api";
 import { usePlan } from "@/hooks/usePlan";
 import { calcProfit, DEFAULT_CREATOR_PCT, DEFAULT_REFERRAL_PCT } from "@/lib/fees";
+import { safeUrl, safeImageSrc } from "@/lib/safeUrl";
 
 /* ─────────────────────────── formatting ─────────────────────────── */
 
@@ -71,15 +72,21 @@ const Price = ({ p }: { p: any }) =>
 
 /* ─────────────────────────── small pieces ─────────────────────────── */
 
+// Stages written by import_kalodata.py v2 (from real week-over-week history).
+// hot/watch/stable are kept so rows from the old importer still render.
 const STAGE: Record<string, { label: string; text: string; bg: string; dot: string }> = {
-  hot:    { label: "Hot",    text: "#B42318", bg: "#FEF3F2", dot: "#F04438" },
-  rising: { label: "Rising", text: "#067647", bg: "#ECFDF3", dot: "#12B76A" },
-  watch:  { label: "Watch",  text: "#B54708", bg: "#FFFAEB", dot: "#F79009" },
-  stable: { label: "Stable", text: "#475467", bg: "#F2F4F7", dot: "#98A2B3" },
+  emerging:  { label: "Emerging",  text: "#6941C6", bg: "#F4F3FF", dot: "#7A5AF8" },
+  rising:    { label: "Rising",    text: "#067647", bg: "#ECFDF3", dot: "#12B76A" },
+  peaking:   { label: "Peaking",   text: "#B54708", bg: "#FFFAEB", dot: "#F79009" },
+  saturated: { label: "Saturated", text: "#B42318", bg: "#FEF3F2", dot: "#F04438" },
+  unknown:   { label: "New data",  text: "#475467", bg: "#F2F4F7", dot: "#98A2B3" },
+  hot:       { label: "Hot",       text: "#B42318", bg: "#FEF3F2", dot: "#F04438" },
+  watch:     { label: "Watch",     text: "#B54708", bg: "#FFFAEB", dot: "#F79009" },
+  stable:    { label: "Stable",    text: "#475467", bg: "#F2F4F7", dot: "#98A2B3" },
 };
 
 const StagePill = ({ phase }: { phase?: string }) => {
-  const s = STAGE[phase ?? "stable"] ?? STAGE.stable;
+  const s = STAGE[phase ?? "unknown"] ?? STAGE.unknown;
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[12px] font-medium whitespace-nowrap" style={{ color: s.text, background: s.bg }}>
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />
@@ -106,8 +113,9 @@ const Delta = ({ v }: { v: any }) => {
   return <div className={`text-[11px] tabular-nums ${Number(v) > 0 ? "app-up" : "app-down"}`}>{t}</div>;
 };
 
-const Thumb = ({ src, alt, size = 40 }: { src?: string; alt: string; size?: number }) => {
+const Thumb = ({ src: rawSrc, alt, size = 40 }: { src?: string; alt: string; size?: number }) => {
   const [broken, setBroken] = useState(false);
+  const src = safeImageSrc(rawSrc);
   return src && !broken ? (
     <img src={src} alt={alt} onError={() => setBroken(true)} loading="lazy"
       className="rounded-md object-cover shrink-0 border border-border bg-muted" style={{ width: size, height: size }} />
@@ -186,7 +194,7 @@ const ADDED = [
   { id: "12m", label: "Last 12 months", days: 365 },
 ];
 
-const STAGES = ["all", "hot", "rising", "watch", "stable"] as const;
+const STAGES = ["all", "emerging", "rising", "peaking", "saturated"] as const;
 
 const PLATFORMS = [
   { id: "alibaba",    label: "Alibaba",    note: "Factories, bulk" },
@@ -214,6 +222,8 @@ const Products = () => {
   const [supplierResults, setSupplierResults] = useState<any[] | null>(null);
   const [supplierLoading, setSupplierLoading] = useState(false);
   const [supplierError, setSupplierError] = useState<string | null>(null);
+  // Optional server message shown with the "upgrade" / "confirm_email" prompts.
+  const [supplierErrorText, setSupplierErrorText] = useState<string | null>(null);
   const [selectedShop, setSelectedShop] = useState<any>(null);
   const [listProductItem, setListProductItem] = useState<any>(null);
   const [shopSearch, setShopSearch] = useState("");
@@ -229,7 +239,18 @@ const Products = () => {
 
   const { data: products = [], isLoading, error } = useQuery({
     queryKey: ["products", debouncedSearch],
-    queryFn: () => (debouncedSearch ? api.searchProducts(debouncedSearch) : api.getProducts({ limit: "100" })),
+    queryFn: async () => {
+      if (debouncedSearch) return api.searchProducts(debouncedSearch);
+      // The API returns at most 100 per call (10 for Free). Page through so Pro sees the full list.
+      const all: any[] = [];
+      for (let offset = 0; offset < 2000; offset += 100) {
+        const res: any = await api.getProducts({ limit: "100", offset: String(offset) });
+        const batch: any[] = Array.isArray(res) ? res : res?.products ?? [];
+        all.push(...batch);
+        if (batch.length < 100 || res?.plan === "free") break;
+      }
+      return all;
+    },
   });
 
   useEffect(() => { setCurrentPage(1); }, [debouncedSearch, added, stage, sort, dir]);
@@ -246,7 +267,7 @@ const Products = () => {
   const rows = useMemo(() => {
     const days = ADDED.find(f => f.id === added)?.days ?? null;
     let r = days !== null ? items.filter(p => isNewProduct(p, days)) : items;
-    if (stage !== "all") r = r.filter(p => (p.trend_phase ?? "stable") === stage);
+    if (stage !== "all") r = r.filter(p => (p.trend_phase ?? "unknown") === stage);
     const val = (p: any): number => {
       switch (sort) {
         case "gmv": return Number(p.gmv_7d) || 0;
@@ -261,7 +282,7 @@ const Products = () => {
     return [...r].sort((a, b) => (dir === "desc" ? val(b) - val(a) : val(a) - val(b)));
   }, [items, added, stage, sort, dir]);
 
-  const visible = isFree ? rows.slice(0, 10) : rows.slice(0, 100);
+  const visible = isFree ? rows.slice(0, 10) : rows;
   const totalPages = Math.max(1, Math.ceil(visible.length / ITEMS_PER_PAGE));
   const pageRows = visible.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   const totalGmv = visible.reduce((s, p) => s + (Number(p.gmv_7d) || 0), 0);
@@ -280,6 +301,7 @@ const Products = () => {
     setSupplierPlatform(null);
     setSupplierResults(null);
     setSupplierError(null);
+    setSupplierErrorText(null);
   };
 
   const searchPlatform = async (platform: string) => {
@@ -289,6 +311,7 @@ const Products = () => {
     setSupplierLoading(true);
     setSupplierResults(null);
     setSupplierError(null);
+    setSupplierErrorText(null);
     try {
       let data = await api.getSuppliers(supplierProduct.id, platform);
       if (reqId !== supplierReq.current) return;
@@ -312,17 +335,28 @@ const Products = () => {
         queryClient.invalidateQueries({ queryKey: ["credits"] });
       } else {
         const results = data?.suppliers ?? data?.results ?? (Array.isArray(data) ? data : []);
-        setSupplierResults(results.slice(0, 5));
+        const seen = new Set<string>();
+        const ranked = [...results]
+          .sort((a: any, b: any) => (Number(b.similarity) || 0) - (Number(a.similarity) || 0) || (Number(a.unit_cost_min) || 0) - (Number(b.unit_cost_min) || 0))
+          .filter((s: any) => {
+            const k = s.external_product_id ? `id:${s.external_product_id}` : `${(s.supplier_name ?? "").toLowerCase()}|${Number(s.unit_cost_min).toFixed(2)}`;
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+          });
+        setSupplierResults(ranked.slice(0, 5));
         queryClient.invalidateQueries({ queryKey: ["user-credits-nav"] });
         queryClient.invalidateQueries({ queryKey: ["credits"] });
       }
     } catch (err: any) {
       if (reqId !== supplierReq.current) return;
-      let detail: any = null;
-      try { detail = JSON.parse(err?.message ?? "")?.detail; } catch { /* plain text */ }
-      if (detail?.code === "no_credits") setSupplierError("no_credits");
-      else if (typeof detail === "string") setSupplierError(detail);
-      else setSupplierError("Supplier search failed. Your credit was not used.");
+      if (!isApiError(err)) setSupplierError("Supplier search failed. Your credit was not used.");
+      else if (err.code === "no_credits") setSupplierError("no_credits");
+      else if (err.kind === "auth") setSupplierError("signin");
+      else if (err.kind === "confirm_email") { setSupplierError("confirm_email"); setSupplierErrorText(err.message); }
+      else if (err.kind === "upgrade") { setSupplierError("upgrade"); setSupplierErrorText(err.message === API_MESSAGES.upgrade ? null : err.message); }
+      else if (err.kind === "server") setSupplierError(`${API_MESSAGES.server} Your credit was not used.`);
+      else setSupplierError(err.message);
       queryClient.invalidateQueries({ queryKey: ["credits"] });
     } finally {
       if (reqId === supplierReq.current) setSupplierLoading(false);
@@ -411,7 +445,13 @@ const Products = () => {
           {isLoading ? (
             <div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
           ) : error ? (
-            <Empty>Products didn't load. Refresh the page to try again.</Empty>
+            isApiError(error) && error.kind === "upgrade" ? (
+              <UpgradeRow text={error.message} />
+            ) : isApiError(error) && ["rate_limit", "auth", "forbidden"].includes(error.kind) ? (
+              <Empty>{error.message}</Empty>
+            ) : (
+              <Empty>Products didn't load. Refresh the page to try again.</Empty>
+            )
           ) : (
             <>
               {/* Desktop table */}
@@ -614,7 +654,7 @@ const Products = () => {
                     <td className="app-td app-num hidden lg:table-cell">{fmtNum(c.products_promoted)}</td>
                     <td className="app-td app-num hidden lg:table-cell">{Number(c.conversion_rate) ? `${c.conversion_rate}%` : "—"}</td>
                     <td className="app-td text-right whitespace-nowrap">
-                      {isFree ? (
+                      {isFree || c.contact_locked ? (
                         <Link to="/pricing" className="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground"><Lock className="h-3 w-3" /> Pro</Link>
                       ) : c.contact_email && c.contact_email !== "null" ? (
                         <a href={`mailto:${c.contact_email}`} className="text-[12px] font-medium text-foreground underline underline-offset-2">Email</a>
@@ -640,8 +680,8 @@ const Products = () => {
             sub={<div className="flex items-center gap-2"><span>{leafCategory(selectedProduct.category)}</span><StagePill phase={selectedProduct.trend_phase} /></div>}
           />
           <div className="p-5 space-y-5">
-            {(selectedProduct.image_storage_url || selectedProduct.thumbnail_url) && (
-              <img src={selectedProduct.image_storage_url || selectedProduct.thumbnail_url} alt={selectedProduct.product_name}
+            {safeImageSrc(selectedProduct.image_storage_url || selectedProduct.thumbnail_url) && (
+              <img src={safeImageSrc(selectedProduct.image_storage_url || selectedProduct.thumbnail_url)} alt={selectedProduct.product_name}
                 className="w-full max-h-[320px] object-contain rounded-lg border border-border bg-muted/40"
                 onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
             )}
@@ -658,8 +698,8 @@ const Products = () => {
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <button onClick={() => openSupplier(selectedProduct)} className="app-btn h-10 flex-1"><Factory className="h-4 w-4" strokeWidth={1.75} /> Find suppliers</button>
-              {selectedProduct.tiktok_product_url && (
-                <a href={selectedProduct.tiktok_product_url} target="_blank" rel="noopener noreferrer" className="app-btn-ghost h-10 flex-1">
+              {safeUrl(selectedProduct.tiktok_product_url) && (
+                <a href={safeUrl(selectedProduct.tiktok_product_url)} target="_blank" rel="noopener noreferrer" className="app-btn-ghost h-10 flex-1">
                   TikTok Shop page <ArrowUpRight className="h-3.5 w-3.5" />
                 </a>
               )}
@@ -713,8 +753,20 @@ const Products = () => {
 
             {supplierError === "upgrade" && (
               <div className="rounded-lg border border-border p-4 flex items-center justify-between gap-3">
-                <span className="text-[13px]">Supplier lookups are on paid plans.</span>
+                <span className="text-[13px]">{supplierErrorText || "Supplier lookups for this product are on paid plans."}</span>
                 <Link to="/pricing" className="app-btn">See plans</Link>
+              </div>
+            )}
+            {supplierError === "signin" && (
+              <div className="rounded-lg border border-border p-4 flex items-center justify-between gap-3">
+                <span className="text-[13px]">Log in to look up suppliers. New accounts get free credits.</span>
+                <Link to="/login" className="app-btn">Log in</Link>
+              </div>
+            )}
+            {supplierError === "confirm_email" && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-1">
+                <div className="text-[13px] font-medium text-amber-900">{supplierErrorText || "Confirm your email to use credits"}</div>
+                <div className="text-[12px] text-amber-800">Open the confirmation link we emailed you, then try again. No credit was used.</div>
               </div>
             )}
             {supplierError === "no_credits" && (
@@ -725,7 +777,7 @@ const Products = () => {
                 <Link to="/pricing" className="app-btn">Upgrade</Link>
               </div>
             )}
-            {supplierError && !["upgrade", "no_credits"].includes(supplierError) && (
+            {supplierError && !["upgrade", "no_credits", "signin", "confirm_email"].includes(supplierError) && (
               <div className="rounded-lg border border-border bg-muted/40 p-4 text-[13px] text-foreground">{supplierError}</div>
             )}
 
@@ -771,8 +823,8 @@ const Products = () => {
                             ) : "—"}
                           </td>
                           <td className="app-td text-right">
-                            {s.supplier_url && (
-                              <a href={s.supplier_url} target="_blank" rel="noopener noreferrer" aria-label="Open supplier"
+                            {safeUrl(s.supplier_url) && (
+                              <a href={safeUrl(s.supplier_url)} target="_blank" rel="noopener noreferrer" aria-label="Open supplier"
                                 className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-muted hover:text-foreground">
                                 <ExternalLink className="h-3.5 w-3.5" />
                               </a>
@@ -808,8 +860,8 @@ const Products = () => {
               <Stat label="Own account revenue" value={fmtUsd(selectedShop.self_operated_revenue)} />
               <Stat label="Affiliate revenue" value={fmtUsd(selectedShop.affiliate_revenue)} />
             </div>
-            {selectedShop.shop_url && (
-              <a href={selectedShop.shop_url} target="_blank" rel="noopener noreferrer" className="app-btn h-10 w-full">
+            {safeUrl(selectedShop.shop_url) && (
+              <a href={safeUrl(selectedShop.shop_url)} target="_blank" rel="noopener noreferrer" className="app-btn h-10 w-full">
                 Open shop <ArrowUpRight className="h-3.5 w-3.5" />
               </a>
             )}

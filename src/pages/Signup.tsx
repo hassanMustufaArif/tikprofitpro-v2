@@ -2,11 +2,14 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
-import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import ContinueToCheckout from "@/components/ContinueToCheckout";
+import {
+  MIN_PASSWORD_LENGTH, isAlreadyRegistered, loginReturnUrl, readPendingPlan, savePendingPlan, signupErrorMessage,
+} from "@/lib/authFlow";
 
 const Signup = () => {
   const [fullName, setFullName] = useState("");
@@ -20,52 +23,42 @@ const Signup = () => {
   const [searchParams] = useSearchParams();
   const { session } = useAuth();
 
-  const planParam = searchParams.get("plan");
-
-  const getPendingPlan = () => {
-    if (planParam) return planParam;
-    try {
-      return sessionStorage.getItem("pendingCheckoutPlan");
-    } catch {
-      return null;
-    }
-  };
+  // Only pro/ultimate are accepted; anything else is ignored.
+  const pendingPlan = readPendingPlan(searchParams);
 
   useEffect(() => {
     if (!session) return;
-    const plan = getPendingPlan();
-    if (plan) {
-      try { sessionStorage.removeItem("pendingCheckoutPlan"); } catch {}
-      api.createCheckout(plan).catch(() => navigate("/dashboard", { replace: true }));
-    } else {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [session, navigate]);
+    // With a pending plan we wait for an explicit "Continue to checkout" click instead of redirecting.
+    if (!pendingPlan) navigate("/dashboard", { replace: true });
+  }, [session, pendingPlan, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
       return;
     }
 
     setLoading(true);
+    if (pendingPlan) savePendingPlan(pendingPlan);
 
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: window.location.origin,
+        // Fixed, existing route on this origin; carries the chosen plan so the confirm link lands on "Continue to checkout".
+        emailRedirectTo: loginReturnUrl(pendingPlan),
       },
     });
 
     setLoading(false);
 
-    if (error) {
-      setError(error.message);
+    // Same "check your email" screen whether or not the address already has an account.
+    if (error && !isAlreadyRegistered(error)) {
+      setError(signupErrorMessage(error));
     } else {
       setSuccess(true);
     }
@@ -74,20 +67,32 @@ const Signup = () => {
   const handleSocialLogin = async (provider: "google" | "apple") => {
     setSocialLoading(provider);
     setError("");
-    const plan = getPendingPlan();
-    if (plan) {
-      try { sessionStorage.setItem("pendingCheckoutPlan", plan); } catch {}
-    }
-    const redirectPath = plan ? `/login?plan=${plan}` : "/dashboard";
+    if (pendingPlan) savePendingPlan(pendingPlan);
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}${redirectPath}` },
+      options: { redirectTo: pendingPlan ? loginReturnUrl(pendingPlan) : `${window.location.origin}/dashboard` },
     });
     if (error) {
-      setError(error.message);
+      setError("Couldn't start sign-in. Please try again.");
       setSocialLoading(null);
     }
   };
+
+  if (session && pendingPlan) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="w-full max-w-sm space-y-6">
+          <div className="text-center space-y-2">
+            <img src="/tikprofitpro_icon.svg" alt="TikProfitPro" className="h-12 w-12 mx-auto mb-2" />
+            <h1 className="text-2xl font-bold tracking-tight">
+              Tik<span style={{ color: "#25F4EE" }}>Profit</span><span style={{ color: "#FE2C55" }}>Pro</span>
+            </h1>
+          </div>
+          <ContinueToCheckout plan={pendingPlan} email={session.user?.email} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -103,6 +108,7 @@ const Signup = () => {
         {success ? (
           <div className="rounded-xl border border-primary/30 bg-primary/10 p-6 text-center space-y-2">
             <p className="text-sm font-medium">Check your email to confirm your account</p>
+            <p className="text-xs text-muted-foreground">If you already have an account, log in instead.</p>
             <Link to="/login" className="text-sm text-primary hover:underline">
               Back to Log In
             </Link>
@@ -166,7 +172,9 @@ const Signup = () => {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Min 6 characters"
+                  placeholder={`Min ${MIN_PASSWORD_LENGTH} characters`}
+                  minLength={MIN_PASSWORD_LENGTH}
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required

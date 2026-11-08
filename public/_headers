@@ -1,0 +1,11 @@
+# Security headers (Netlify / Cloudflare Pages format).
+# Lovable hosting may ignore this file; see docs/SECURITY_HEADERS.md for the Cloudflare Transform Rule.
+# The CSP ships as Report-Only first. Rename the header to Content-Security-Policy once the
+# browser console / reports show no violations from the app itself.
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' https://*.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https://api.tikprofitpro.shop https://daxptnybsofquelczugc.supabase.co wss://daxptnybsofquelczugc.supabase.co https://*.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://*.g.doubleclick.net https://www.google.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://*.lemonsqueezy.com; form-action 'self' https://daxptnybsofquelczugc.supabase.co https://accounts.google.com https://*.lemonsqueezy.com; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests

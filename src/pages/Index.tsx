@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCheckout } from "@/hooks/useCheckout";
+import { safeImageSrc } from "@/lib/safeUrl";
 import { usePlan } from "@/hooks/usePlan";
 
 const iconMap = {
@@ -153,9 +154,9 @@ const Dashboard = () => {
                     <tr key={product.id ?? i} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
                       <td className="py-3.5 px-4 font-semibold max-w-xs">
                         <div className="flex items-center gap-3">
-                          {product.thumbnail_url ? (
+                          {safeImageSrc(product.thumbnail_url) ? (
                             <img
-                              src={product.thumbnail_url}
+                              src={safeImageSrc(product.thumbnail_url)}
                               alt={product.product_name}
                               className="w-11 h-11 rounded-lg object-cover shrink-0 border border-border"
                               onError={(e) => {
@@ -168,7 +169,7 @@ const Dashboard = () => {
                           ) : null}
                           <div
                             className="w-11 h-11 rounded-lg bg-muted/50 shrink-0 items-center justify-center text-base border border-border"
-                            style={{ display: product.thumbnail_url ? "none" : "flex" }}
+                            style={{ display: safeImageSrc(product.thumbnail_url) ? "none" : "flex" }}
                           >
                             <Package className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
                           </div>
@@ -205,9 +206,9 @@ const Dashboard = () => {
                 <div key={product.id ?? i} className="rounded-lg border border-border bg-card p-4 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3 min-w-0">
-                      {product.thumbnail_url ? (
+                      {safeImageSrc(product.thumbnail_url) ? (
                         <img
-                          src={product.thumbnail_url}
+                          src={safeImageSrc(product.thumbnail_url)}
                           alt={product.product_name}
                           className="w-11 h-11 rounded-lg object-cover shrink-0 border border-border"
                           onError={(e) => {
@@ -220,7 +221,7 @@ const Dashboard = () => {
                       ) : null}
                       <div
                         className="w-11 h-11 rounded-lg bg-muted/50 shrink-0 items-center justify-center text-base border border-border"
-                        style={{ display: product.thumbnail_url ? "none" : "flex" }}
+                        style={{ display: safeImageSrc(product.thumbnail_url) ? "none" : "flex" }}
                       >
                         <Package className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
                       </div>
@@ -250,23 +251,6 @@ const Dashboard = () => {
             </div>
           </>
         )}
-      </div>
-
-      <div className="rounded-lg border border-border bg-card p-4 md:p-6">
-        <h2 className="font-bold mb-3 md:mb-4 text-base md:text-lg">Recent Activity</h2>
-        <div className="space-y-3">
-          {[
-            { text: "New hot product detected: LED Sunset Lamp", time: "2 min ago" },
-            { text: "Virality spike: Portable Blender +340%", time: "15 min ago" },
-            { text: "Price drop alert: Magnetic Phone Mount", time: "1 hr ago" },
-            { text: "New supplier match: Beauty Tools Co.", time: "3 hrs ago" },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-2">
-              <span className="text-sm md:text-base truncate">{item.text}</span>
-              <span className="text-sm text-muted-foreground shrink-0">{item.time}</span>
-            </div>
-          ))}
-        </div>
       </div>
 
       {isFree && (

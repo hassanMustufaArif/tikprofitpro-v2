@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import { suppliers } from "@/lib/suppliers-data";
+import { safeHref } from "@/lib/safeUrl";
 
 const Suppliers = () => (
   <div className="min-h-screen" style={{ background: "#080808", color: "#e8e8e8" }}>
@@ -25,7 +26,7 @@ const Suppliers = () => (
               <p className="text-xs" style={{ color: "#888" }}>Shipping: {s.shipping}</p>
               <p className="text-xs" style={{ color: "#888" }}>Min Order: {s.minOrder}</p>
             </div>
-            <a href={s.url} target="_blank" rel="noreferrer"
+            <a href={safeHref(s.url)} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-sm font-semibold transition-colors hover:underline" style={{ color: "#00ff85" }}>
               Visit {s.name} →
             </a>
