@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { safeImageSrc } from "@/lib/safeUrl";
 import {
   Select,
   SelectContent,
@@ -234,7 +235,7 @@ const ListProduct = () => {
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
               {images.map((src, i) => (
                 <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-border group">
-                  <img src={src} alt="" className="w-full h-full object-cover" />
+                  <img src={safeImageSrc(src)} alt="" className="w-full h-full object-cover" />
                   <button
                     onClick={() => removeImage(i)}
                     className="absolute top-1 right-1 bg-background/80 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -287,7 +288,7 @@ const ListProduct = () => {
             <div className="rounded-lg border border-border bg-background p-4 space-y-3">
               {images.length > 0 && (
                 <img
-                  src={images[0]}
+                  src={safeImageSrc(images[0])}
                   alt="preview"
                   className="w-full aspect-square object-cover rounded-lg"
                 />
@@ -339,7 +340,8 @@ const ListProduct = () => {
                 onClick={() =>
                   window.open(
                     "https://seller-us.tiktok.com/product/sell/product/add",
-                    "_blank"
+                    "_blank",
+                    "noopener,noreferrer"
                   )
                 }
               >

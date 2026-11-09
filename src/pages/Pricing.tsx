@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import { useAuth } from "@/contexts/AuthContext";
-import { api } from "@/lib/api";
+import { api, isCheckoutPlan } from "@/lib/api";
+import { savePendingPlan } from "@/lib/authFlow";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -25,10 +26,9 @@ const Pricing = () => {
   const handleCheckout = async (plan: string) => {
     // If not logged in, save plan and redirect to signup
     if (!session) {
-      try {
-        sessionStorage.setItem("pendingCheckoutPlan", plan);
-      } catch {}
-      navigate(`/signup?plan=${plan}`);
+      if (!isCheckoutPlan(plan)) return;
+      savePendingPlan(plan);
+      navigate(`/signup?plan=${encodeURIComponent(plan)}`);
       return;
     }
 

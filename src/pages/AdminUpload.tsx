@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Upload, FileText, X, Loader2, Search, ExternalLink, CheckCircle2, AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api";
+import { safeHref } from "@/lib/safeUrl";
 
 /**
  * Weekly upload (admins only; the API checks ADMIN_EMAILS).
@@ -214,7 +215,7 @@ const AdminUpload = () => {
         </div>
         {importing && <p className="text-[12px] text-muted-foreground">Wait for the import to finish first.</p>}
         {srcMsg && <p className="text-[13px] text-emerald-700">{srcMsg}</p>}
-        {runs.isError && <p className="text-[12px] text-amber-700">{String((runs.error as any)?.message || "").includes("GITHUB_ACTIONS_TOKEN") ? "Not set up yet: add GITHUB_ACTIONS_TOKEN on Render." : "Couldn't load recent runs."}</p>}
+        {runs.isError && <p className="text-[12px] text-amber-700">{JSON.stringify((runs.error as any)?.detail ?? (runs.error as any)?.message ?? "").includes("GITHUB_ACTIONS_TOKEN") ? "Not set up yet: add GITHUB_ACTIONS_TOKEN on Render." : "Couldn't load recent runs."}</p>}
         {(runs.data?.runs ?? []).length > 0 && (
           <div className="space-y-1">
             <div className="text-[12px] font-medium text-muted-foreground">Recent runs</div>
@@ -225,7 +226,7 @@ const AdminUpload = () => {
                   : <AlertTriangle className="h-3.5 w-3.5 text-red-600" />}
                 <span>{when(r.created_at)}</span>
                 <span className="text-muted-foreground">{r.status === "completed" ? r.conclusion : r.status.replace("_", " ")}</span>
-                <a href={r.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline">Log <ExternalLink className="h-3 w-3" /></a>
+                <a href={safeHref(r.url)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline">Log <ExternalLink className="h-3 w-3" /></a>
               </div>
             ))}
           </div>

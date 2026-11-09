@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, X, Undo2, EyeOff, Eye, ExternalLink, Loader2, Plus } from "lucide-react";
 import { api } from "@/lib/api";
+import { safeUrl, safeImageSrc, isHttpUrl } from "@/lib/safeUrl";
 
 /**
  * Supplier review (admins only; the API checks ADMIN_EMAILS).
@@ -20,7 +21,7 @@ const VIEWS = [
 
 const pct = (v: any) => (v == null ? "—" : `${Math.round(Number(v) * 100)}%`);
 const usd = (v: any) => (v == null || v === "" ? "—" : `$${Number(v).toFixed(2)}`);
-const img = (p: any) => p?.image_storage_url || p?.thumbnail_url || "";
+const img = (p: any) => safeImageSrc(p?.image_storage_url || p?.thumbnail_url) || "";
 
 const Badge = ({ children, tone = "gray" }: { children: React.ReactNode; tone?: "green" | "amber" | "red" | "gray" | "blue" }) => {
   const tones = {
@@ -32,8 +33,8 @@ const Badge = ({ children, tone = "gray" }: { children: React.ReactNode; tone?: 
 
 const SupplierCard = ({ s, children }: { s: any; children?: React.ReactNode }) => (
   <div className="rounded-lg border border-border bg-card p-3 flex gap-3">
-    {s.image_url
-      ? <img src={s.image_url} alt="" className="h-24 w-24 rounded object-cover border border-border shrink-0" />
+    {safeImageSrc(s.image_url)
+      ? <img src={safeImageSrc(s.image_url)} alt="" className="h-24 w-24 rounded object-cover border border-border shrink-0" />
       : <div className="h-24 w-24 rounded bg-muted shrink-0" />}
     <div className="min-w-0 flex-1 space-y-1">
       <div className="flex flex-wrap items-center gap-1.5">
@@ -46,8 +47,8 @@ const SupplierCard = ({ s, children }: { s: any; children?: React.ReactNode }) =
         {s.supplier_name || "—"} · {usd(s.unit_cost_min)}{s.unit_cost_max && s.unit_cost_max !== s.unit_cost_min ? `–${usd(s.unit_cost_max)}` : ""} · MOQ {s.moq ?? "—"}
       </div>
       <div className="flex flex-wrap items-center gap-2 pt-1">
-        {s.supplier_url && (
-          <a href={s.supplier_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[12px] underline">
+        {safeUrl(s.supplier_url) && (
+          <a href={safeUrl(s.supplier_url)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] underline">
             Open listing <ExternalLink className="h-3 w-3" />
           </a>
         )}
@@ -76,11 +77,14 @@ const AddSupplierForm = ({ productId, onDone }: { productId: string; onDone: () 
   const [err, setErr] = useState("");
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
   const submit = async () => {
-    setErr(""); setBusy(true);
+    setErr("");
+    if (!isHttpUrl(f.supplier_url)) { setErr("Listing link must be a full http(s):// URL."); return; }
+    if (f.image_url && !isHttpUrl(f.image_url)) { setErr("Photo URL must be a full http(s):// URL, or leave it empty."); return; }
+    setBusy(true);
     try {
       await api.adminAddSupplier({
-        product_id: productId, platform: f.platform, supplier_url: f.supplier_url, supplier_name: f.supplier_name,
-        unit_cost_min: Number(f.unit_cost_min), moq: f.moq ? Number(f.moq) : null, image_url: f.image_url || null,
+        product_id: productId, platform: f.platform, supplier_url: safeUrl(f.supplier_url), supplier_name: f.supplier_name,
+        unit_cost_min: Number(f.unit_cost_min), moq: f.moq ? Number(f.moq) : null, image_url: safeUrl(f.image_url) ?? null,
       });
       setF({ ...f, supplier_url: "", supplier_name: "", unit_cost_min: "", moq: "", image_url: "" });
       onDone();
@@ -96,11 +100,11 @@ const AddSupplierForm = ({ productId, onDone }: { productId: string; onDone: () 
         <select className={input} value={f.platform} onChange={set("platform")}>
           <option value="alibaba">Alibaba</option><option value="aliexpress">AliExpress</option><option value="amazon">Amazon</option>
         </select>
-        <input className={`${input} sm:col-span-2`} placeholder="https://… listing link" value={f.supplier_url} onChange={set("supplier_url")} />
+        <input className={`${input} sm:col-span-2`} type="url" inputMode="url" placeholder="https://… listing link" value={f.supplier_url} onChange={set("supplier_url")} />
         <input className={input} placeholder="Supplier name" value={f.supplier_name} onChange={set("supplier_name")} />
         <input className={input} placeholder="Unit price $" inputMode="decimal" value={f.unit_cost_min} onChange={set("unit_cost_min")} />
         <input className={input} placeholder="MOQ" inputMode="numeric" value={f.moq} onChange={set("moq")} />
-        <input className={`${input} sm:col-span-5`} placeholder="Photo URL (optional)" value={f.image_url} onChange={set("image_url")} />
+        <input className={`${input} sm:col-span-5`} type="url" inputMode="url" placeholder="Photo URL (optional)" value={f.image_url} onChange={set("image_url")} />
         <Btn tone="approve" onClick={submit} busy={busy}><Plus className="h-3 w-3" /> Add</Btn>
       </div>
       {err && <div className="text-[12px] text-red-700">{err}</div>}
