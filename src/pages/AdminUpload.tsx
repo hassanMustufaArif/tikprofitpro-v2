@@ -77,7 +77,7 @@ const AdminUpload = () => {
 
   const addFiles = (list: FileList | null) => {
     if (!list) return;
-    const csv = Array.from(list).filter((f) => f.name.toLowerCase().endsWith(".csv"));
+    const csv = Array.from(list).filter((f) => /\.(csv|xlsx)$/i.test(f.name));
     setFiles((old) => [...old, ...csv.filter((f) => !old.some((o) => o.name === f.name && o.size === f.size))]);
     setPreview(null); setJob(null); setErr("");
   };
@@ -129,7 +129,7 @@ const AdminUpload = () => {
         </div>
       )}
 
-      <Step n={1} title="Add the Kalodata CSV files">
+      <Step n={1} title="Add the Kalodata CSV or FastMoss product (.xlsx) files">
         <p className="text-[13px] text-muted-foreground">
           Export the same 7-day range for products (one file per category is fine), creators and shops. Drop them all here; the type is detected from the columns.
         </p>
@@ -141,8 +141,8 @@ const AdminUpload = () => {
           className={`cursor-pointer rounded-lg border-2 border-dashed p-6 text-center text-[13px] ${drag ? "border-foreground bg-muted" : "border-border"}`}
         >
           <Upload className="mx-auto h-5 w-5 mb-1" />
-          Drag CSV files here, or click to choose
-          <input ref={inputRef} type="file" accept=".csv,text/csv" multiple className="hidden" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+          Drag CSV or XLSX files here, or click to choose
+          <input ref={inputRef} type="file" accept=".csv,.xlsx,text/csv" multiple className="hidden" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
         </div>
         {files.length > 0 && (
           <ul className="space-y-1">

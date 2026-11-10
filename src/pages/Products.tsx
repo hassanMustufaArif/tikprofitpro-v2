@@ -323,7 +323,7 @@ const Products = () => {
           if (job.status === "done") { data = { success: true, suppliers: job.suppliers ?? [] }; break; }
           if (job.status === "no_match" || job.status === "failed") {
             data = { success: false, message: job.status === "no_match"
-              ? "No supplier photo matched this product closely enough. Your credit was not used."
+              ? "No suppliers found for this product yet. Your credit was not used."
               : "The search couldn't finish this time. Your credit was not used." };
             break;
           }
@@ -336,15 +336,18 @@ const Products = () => {
       } else {
         const results = data?.suppliers ?? data?.results ?? (Array.isArray(data) ? data : []);
         const seen = new Set<string>();
-        const ranked = [...results]
-          .sort((a: any, b: any) => (Number(b.similarity) || 0) - (Number(a.similarity) || 0) || (Number(a.unit_cost_min) || 0) - (Number(b.unit_cost_min) || 0))
+        // Server order is the ranking (photo-search relevance). Only re-sort when the server sent match scores.
+        const scored = results.some((r: any) => r.similarity != null);
+        const ranked = (scored
+          ? [...results].sort((a: any, b: any) => (Number(b.similarity) || 0) - (Number(a.similarity) || 0) || (Number(a.unit_cost_min) || 0) - (Number(b.unit_cost_min) || 0))
+          : [...results])
           .filter((s: any) => {
             const k = s.external_product_id ? `id:${s.external_product_id}` : `${(s.supplier_name ?? "").toLowerCase()}|${Number(s.unit_cost_min).toFixed(2)}`;
             if (seen.has(k)) return false;
             seen.add(k);
             return true;
           });
-        setSupplierResults(ranked.slice(0, 5));
+        setSupplierResults(ranked.slice(0, 3));
         queryClient.invalidateQueries({ queryKey: ["user-credits-nav"] });
         queryClient.invalidateQueries({ queryKey: ["credits"] });
       }
