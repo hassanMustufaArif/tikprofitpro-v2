@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { Menu, X } from "lucide-react";
+import Wordmark from "@/components/Wordmark";
 
 const navLinks = [
   { label: "Product", href: "/#features" },
@@ -17,11 +18,11 @@ type Variant = "light" | "dark";
 
 const THEME: Record<Variant, { bar: string; link: string; login: string; cta: string; menu: string }> = {
   light: {
-    bar: "bg-white/85 backdrop-blur-xl border-b border-[#ECECEE]",
-    link: "text-[#55595F] hover:text-[#0B0B0C]",
-    login: "bg-[#F1F1F3] text-[#0B0B0C] hover:bg-[#E6E6E9]",
-    cta: "bg-[#0B0B0C] text-white hover:bg-[#2A2C30]",
-    menu: "bg-white border-b border-[#ECECEE]",
+    bar: "bg-[#FAF8F4]/85 backdrop-blur-xl border-b border-[#E6E1D7]",
+    link: "text-[#4A5A61] hover:text-[#1A2A31]",
+    login: "text-[#1A2A31] hover:bg-[#F0EDE6]",
+    cta: "bg-[#214F5E] text-[#FAF8F4] hover:bg-[#1A4351] shadow-[0_1px_2px_rgba(26,42,49,0.12)]",
+    menu: "bg-[#FAF8F4] border-b border-[#E6E1D7]",
   },
   dark: {
     bar: "bg-[#080808]/85 backdrop-blur-xl border-b border-white/[0.07]",
@@ -60,17 +61,19 @@ export default function Navbar({ variant = "dark" }: { variant?: Variant }) {
       <Link key={link.label} to={link.href} onClick={onClick} className={cls}>{link.label}</Link>
     );
 
-  const pill = "inline-flex h-10 items-center rounded-full px-5 text-[14px] font-medium transition-colors";
+  const pill = variant === "light"
+    ? "inline-flex h-9 items-center rounded-lg px-4 text-[14px] font-medium transition-colors"
+    : "inline-flex h-10 items-center rounded-full px-5 text-[14px] font-medium transition-colors";
 
   return (
     <motion.nav initial={{ y: -12, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled || mobileOpen ? t.bar : "border-b border-transparent"}`}>
       <div className="max-w-[1200px] mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
         <Link to={session ? "/dashboard" : "/"} className="shrink-0">
-          <img src="/tikprofitpro_logo.svg" alt="TikProfitPro" height="28" style={{ height: 28 }} />
+          {variant === "light" ? <><Wordmark size={26} /><span className="sr-only">TikProfitPro home</span></> : <img src="/tikprofitpro_logo.svg" alt="TikProfitPro" height="28" style={{ height: 28 }} />}
         </Link>
 
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-7">
           {navLinks.map((l) => renderLink(l, `text-[14px] transition-colors ${t.link}`))}
         </div>
 

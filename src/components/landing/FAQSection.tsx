@@ -1,10 +1,7 @@
 import SectionWrapper from "@/components/landing/SectionWrapper";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import * as AccordionPrimitive from "@radix-ui/react-accordion";
+import { Plus } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem } from "@/components/ui/accordion";
 
 const faqs = [
   {
@@ -27,30 +24,27 @@ const faqs = [
 
 export default function FAQSection() {
   return (
-    <SectionWrapper className="!max-w-[1200px] !px-5 md:!px-8 pb-20 md:pb-28">
-      <div className="grid gap-10 md:grid-cols-[1fr,1.6fr]">
-      <div>
-        <h2 className="mk-h2">Questions, answered</h2>
-        <p className="mk-lead mt-4">Can't find your answer? The tutorials walk through every feature.</p>
-      </div>
-      <div>
-        <Accordion type="single" collapsible className="divide-y divide-[#ECECEE] border-y border-[#ECECEE]">
+    <SectionWrapper id="faq" className="!max-w-[1200px] !px-5 md:!px-8 pb-20 md:pb-28">
+      <div className="grid gap-10 md:grid-cols-[1fr,1.5fr] md:gap-16">
+        <div>
+          <h2 className="mk-h2">Good questions,<br /><span className="mk-soft-line">answered.</span></h2>
+          <p className="mk-lead mt-5 max-w-sm">Can't find your answer? The tutorials walk through every feature.</p>
+        </div>
+        <Accordion type="single" collapsible className="border-t border-[#E6E1D7]">
           {faqs.map((faq, i) => (
-            <AccordionItem
-              key={i}
-              value={`faq-${i}`}
-              className="border-0"
-            >
-              <AccordionTrigger className="py-5 text-[15px] md:text-[16px] font-medium text-left text-[#0B0B0C] hover:no-underline [&>svg]:text-[#6B6F76]">
-                {faq.q}
-              </AccordionTrigger>
-              <AccordionContent className="text-[15px] leading-relaxed pb-5" style={{ color: "#55595F" }}>
+            <AccordionItem key={i} value={`faq-${i}`} className="border-b border-[#E6E1D7]">
+              <AccordionPrimitive.Header className="flex">
+                <AccordionPrimitive.Trigger className="group flex flex-1 items-center justify-between gap-6 py-5 text-left text-[15px] md:text-[16px] font-medium text-[#1A2A31] transition-colors hover:text-[#214F5E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#214F5E] focus-visible:ring-offset-2 rounded-sm">
+                  {faq.q}
+                  <Plus className="h-4 w-4 shrink-0 text-[#5B6A70] transition-transform duration-200 group-data-[state=open]:rotate-45" aria-hidden />
+                </AccordionPrimitive.Trigger>
+              </AccordionPrimitive.Header>
+              <AccordionContent className="max-w-[60ch] pb-5 text-[15px] leading-relaxed text-[#4A5A61]">
                 {faq.a}
               </AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
-      </div>
       </div>
     </SectionWrapper>
   );

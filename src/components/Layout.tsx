@@ -52,15 +52,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center justify-between border-b border-border bg-card px-3 md:px-5 shrink-0">
+          <header className="sticky top-0 z-20 h-14 flex items-center justify-between border-b border-border bg-background/85 backdrop-blur-md px-3 md:px-6 shrink-0">
             <div className="flex items-center">
               <MobileMenuButton />
               <SidebarTrigger className="hidden md:flex text-muted-foreground hover:text-foreground h-8 w-8 items-center justify-center" />
             </div>
             <div className="flex items-center gap-1.5 md:gap-2">
               {showCredits && (
-                <span className="hidden sm:inline text-[12px] text-muted-foreground tabular-nums px-2">
-                  <span className="text-foreground font-medium">{creditsData?.credits_remaining ?? 0}</span> / {creditsData?.credits_total ?? 0} credits
+                <span className="hidden sm:inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-[12px] text-muted-foreground tabular-nums">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
+                  <span className="text-foreground font-semibold">{creditsData?.credits_remaining ?? 0}</span> / {creditsData?.credits_total ?? 0} credits
                 </span>
               )}
               <button onClick={() => setVideoOpen(true)} className="app-btn-ghost">
@@ -72,7 +73,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   {user.email}
                 </span>
               )}
-              <button onClick={signOut} className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] text-muted-foreground hover:text-foreground hover:bg-muted">
+              <button onClick={signOut} className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[13px] text-muted-foreground hover:text-foreground hover:bg-muted">
                 <LogOut className="h-3.5 w-3.5" strokeWidth={1.75} />
                 <span className="hidden sm:inline">Log out</span>
               </button>
@@ -90,7 +91,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               )}
             </div>
           )}
-          <main className="flex-1 px-4 py-5 md:px-8 md:py-7 overflow-auto bg-background">
+          <main className="flex-1 px-4 py-6 md:px-8 md:py-9 overflow-auto bg-background">
             {children}
           </main>
         </div>

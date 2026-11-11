@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import AuthShell from "@/components/AuthShell";
 import ContinueToCheckout from "@/components/ContinueToCheckout";
 import {
   MIN_PASSWORD_LENGTH, isAlreadyRegistered, loginReturnUrl, readPendingPlan, savePendingPlan, signupErrorMessage,
@@ -80,30 +81,14 @@ const Signup = () => {
 
   if (session && pendingPlan) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <div className="w-full max-w-sm space-y-6">
-          <div className="text-center space-y-2">
-            <img src="/tikprofitpro_icon.svg" alt="TikProfitPro" className="h-12 w-12 mx-auto mb-2" />
-            <h1 className="text-2xl font-bold tracking-tight">
-              Tik<span style={{ color: "#25F4EE" }}>Profit</span><span style={{ color: "#FE2C55" }}>Pro</span>
-            </h1>
-          </div>
+      <AuthShell title="Almost there." subtitle="Finish checkout to start your plan.">
           <ContinueToCheckout plan={pendingPlan} email={session.user?.email} />
-        </div>
-      </div>
+        </AuthShell>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-2">
-          <img src="/tikprofitpro_icon.svg" alt="TikProfitPro" className="h-12 w-12 mx-auto mb-2" />
-          <h1 className="text-2xl font-bold tracking-tight">
-            Tik<span style={{ color: "#25F4EE" }}>Profit</span><span style={{ color: "#FE2C55" }}>Pro</span>
-          </h1>
-          <p className="text-sm text-muted-foreground">Create your account</p>
-        </div>
+    <AuthShell title="Create your account." subtitle="Free plan, no card required.">
 
         {success ? (
           <div className="rounded-xl border border-primary/30 bg-primary/10 p-6 text-center space-y-2">
@@ -198,8 +183,7 @@ const Signup = () => {
             </Link>
           </p>
         )}
-      </div>
-    </div>
+      </AuthShell>
   );
 };
 

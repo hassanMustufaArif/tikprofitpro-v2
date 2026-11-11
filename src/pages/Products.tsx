@@ -73,20 +73,20 @@ const Est = ({ p }: { p: any }) =>
 // Stages written by import_kalodata.py v2 (from real week-over-week history).
 // hot/watch/stable are kept so rows from the old importer still render.
 const STAGE: Record<string, { label: string; text: string; bg: string; dot: string }> = {
-  emerging:  { label: "Emerging",  text: "#6941C6", bg: "#F4F3FF", dot: "#7A5AF8" },
-  rising:    { label: "Rising",    text: "#067647", bg: "#ECFDF3", dot: "#12B76A" },
-  peaking:   { label: "Peaking",   text: "#B54708", bg: "#FFFAEB", dot: "#F79009" },
-  saturated: { label: "Saturated", text: "#B42318", bg: "#FEF3F2", dot: "#F04438" },
-  unknown:   { label: "New data",  text: "#475467", bg: "#F2F4F7", dot: "#98A2B3" },
-  hot:       { label: "Hot",       text: "#B42318", bg: "#FEF3F2", dot: "#F04438" },
-  watch:     { label: "Watch",     text: "#B54708", bg: "#FFFAEB", dot: "#F79009" },
-  stable:    { label: "Stable",    text: "#475467", bg: "#F2F4F7", dot: "#98A2B3" },
+  emerging:  { label: "Emerging",  text: "#1C6B47", bg: "#E6F2EB", dot: "#2F8F62" },
+  rising:    { label: "Rising",    text: "#1F5675", bg: "#E8F1F6", dot: "#2D6C8F" },
+  peaking:   { label: "Peaking",   text: "#8A520C", bg: "#FBF1DF", dot: "#C27A1A" },
+  saturated: { label: "Saturated", text: "#4F5D63", bg: "#F0EDE6", dot: "#94A0A5" },
+  unknown:   { label: "New data",  text: "#4F5D63", bg: "#F0EDE6", dot: "#94A0A5" },
+  hot:       { label: "Hot",       text: "#9E3427", bg: "#FBECEA", dot: "#C2523F" },
+  watch:     { label: "Watch",     text: "#8A520C", bg: "#FBF1DF", dot: "#C27A1A" },
+  stable:    { label: "Stable",    text: "#4F5D63", bg: "#F0EDE6", dot: "#94A0A5" },
 };
 
 const StagePill = ({ phase }: { phase?: string }) => {
   const s = STAGE[phase ?? "unknown"] ?? STAGE.unknown;
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[12px] font-medium whitespace-nowrap" style={{ color: s.text, background: s.bg }}>
+    <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11.5px] font-medium whitespace-nowrap" style={{ color: s.text, background: s.bg }}>
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />
       {s.label}
     </span>
@@ -96,11 +96,8 @@ const StagePill = ({ phase }: { phase?: string }) => {
 const Score = ({ v }: { v: any }) => {
   const n = Math.max(0, Math.min(100, Number(v) || 0));
   return (
-    <div className="flex items-center justify-end gap-2">
-      <div className="h-1 w-10 rounded-full bg-muted overflow-hidden">
-        <div className="h-full rounded-full bg-foreground/70" style={{ width: `${n}%` }} />
-      </div>
-      <span className="w-6 text-right tabular-nums">{n}</span>
+    <div className="flex items-center justify-end">
+      <span className={n >= 80 ? "app-score app-score-hi" : n >= 60 ? "app-score" : "app-score app-score-lo"}>{n}</span>
     </div>
   );
 };
@@ -116,9 +113,9 @@ const Thumb = ({ src: rawSrc, alt, size = 40 }: { src?: string; alt: string; siz
   const src = safeImageSrc(rawSrc);
   return src && !broken ? (
     <img src={src} alt={alt} onError={() => setBroken(true)} loading="lazy"
-      className="rounded-md object-cover shrink-0 border border-border bg-muted" style={{ width: size, height: size }} />
+      className="app-thumb" style={{ width: size, height: size }} />
   ) : (
-    <div className="rounded-md shrink-0 border border-border bg-muted flex items-center justify-center text-muted-foreground" style={{ width: size, height: size }}>
+    <div className="rounded-lg shrink-0 border border-border bg-muted flex items-center justify-center text-muted-foreground" style={{ width: size, height: size }}>
       <Package className="h-4 w-4" strokeWidth={1.5} />
     </div>
   );
@@ -406,11 +403,11 @@ const Products = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-6 border-b border-border">
+      <div className="flex gap-7 border-b border-border">
         {tabs.map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)}
             className={`-mb-px h-10 border-b-2 text-[13px] font-medium transition-colors ${
-              activeTab === t.id ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+              activeTab === t.id ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
             {t.label}
             {t.count > 0 && <span className="ml-1.5 text-[12px] tabular-nums text-muted-foreground">{t.count}</span>}
           </button>
@@ -475,7 +472,7 @@ const Products = () => {
               {/* Desktop table */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
-                  <thead className="border-b border-border bg-muted/40">
+                  <thead className="border-b border-border">
                     <tr>
                       <th className="app-th w-10 text-center">#</th>
                       <th className="app-th">Product</th>
@@ -492,7 +489,7 @@ const Products = () => {
                   <tbody>
                     {pageRows.map((p, i) => (
                       <tr key={p.id ?? i} onClick={() => setSelectedProduct(p)}
-                        className="group border-b border-border last:border-0 hover:bg-muted/40 cursor-pointer">
+                        className="group border-b border-border last:border-0 hover:bg-muted/60 cursor-pointer">
                         <td className="app-td text-center text-muted-foreground tabular-nums">{(currentPage - 1) * ITEMS_PER_PAGE + i + 1}</td>
                         <td className="app-td max-w-[420px]">
                           <div className="flex items-center gap-3">
@@ -580,7 +577,7 @@ const Products = () => {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="border-b border-border bg-muted/40">
+              <thead className="border-b border-border">
                 <tr>
                   <th className="app-th w-10 text-center">#</th>
                   <th className="app-th">Shop</th>
@@ -596,9 +593,16 @@ const Products = () => {
               </thead>
               <tbody>
                 {shopRows.map((s, i) => (
-                  <tr key={s.id ?? i} onClick={() => setSelectedShop(s)} className="border-b border-border last:border-0 hover:bg-muted/40 cursor-pointer">
+                  <tr key={s.id ?? i} onClick={() => setSelectedShop(s)} className="border-b border-border last:border-0 hover:bg-muted/60 cursor-pointer">
                     <td className="app-td text-center text-muted-foreground tabular-nums">{i + 1}</td>
-                    <td className="app-td font-medium text-foreground whitespace-nowrap">{s.shop_name}</td>
+                    <td className="app-td font-medium text-foreground whitespace-nowrap">
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-[11px] font-semibold uppercase text-secondary-foreground" aria-hidden>
+                          {String(s.shop_name ?? "").slice(0, 2) || "–"}
+                        </span>
+                        {s.shop_name}
+                      </div>
+                    </td>
                     <td className="app-td text-muted-foreground whitespace-nowrap">{s.seller_type ?? "—"}</td>
                     <td className="app-td app-num font-medium text-foreground">{fmtUsd(s.gmv_total)}<Delta v={s.gmv_growth_pct} /></td>
                     <td className="app-td app-num">{fmtNum(s.product_count ?? s.item_sold)}</td>
@@ -636,7 +640,7 @@ const Products = () => {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="border-b border-border bg-muted/40">
+              <thead className="border-b border-border">
                 <tr>
                   <th className="app-th w-10 text-center">#</th>
                   <th className="app-th">Creator</th>
@@ -654,14 +658,21 @@ const Products = () => {
               </thead>
               <tbody>
                 {creatorRows.map((c, i) => (
-                  <tr key={c.id ?? i} className="border-b border-border last:border-0 hover:bg-muted/40">
+                  <tr key={c.id ?? i} className="border-b border-border last:border-0 hover:bg-muted/60">
                     <td className="app-td text-center text-muted-foreground tabular-nums">{i + 1}</td>
                     <td className="app-td">
-                      <div className="font-medium text-foreground">{c.username}</div>
-                      <div className="text-[12px] text-muted-foreground">{c.niche || "—"}</div>
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-semibold uppercase text-accent-foreground" aria-hidden>
+                          {String(c.username ?? "").replace(/^@/, "").slice(0, 2) || "–"}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="font-medium text-foreground">{c.username}</div>
+                          <div className="text-[12px] text-muted-foreground">{c.niche || "—"}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="app-td">
-                      <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-foreground">{c.creator_type === "AIGC" ? "AI video" : c.creator_type ?? "—"}</span>
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground">{c.creator_type === "AIGC" ? "AI video" : c.creator_type ?? "—"}</span>
                     </td>
                     <td className="app-td app-num">{fmtNum(c.followers)}</td>
                     <td className="app-td app-num">{Number(c.engagement_rate) ? `${c.engagement_rate}%` : "—"}</td>
@@ -802,7 +813,7 @@ const Products = () => {
             {supplierResults && supplierResults.length > 0 && (
               <div className="rounded-lg border border-border overflow-hidden">
                 <table className="w-full">
-                  <thead className="border-b border-border bg-muted/40">
+                  <thead className="border-b border-border">
                     <tr>
                       <th className="app-th">Supplier</th>
                       <th className="app-th app-num">Unit cost</th>

@@ -18,12 +18,12 @@ export default function ProfitCalcEmbed() {
     const netAfterAds = after.profit;
     const margin = before.margin;
     const roi = adSpend > 0 ? (netAfterAds / adSpend) * 100 : 0;
-    const marginColor = margin > 20 ? "#067647" : margin >= 10 ? "#B54708" : "#D92D20";
+    const marginColor = margin > 20 ? "#1C6B47" : margin >= 10 ? "#8A520C" : "#AB3A2B";
     return { gross, tiktokFee: fees, netAfterFees, netAfterAds, margin, roi, marginColor };
   }, [cost, price, fee, creator, adSpend]);
 
   const inputClass =
-    "w-full mk-num bg-white border border-[#E4E4E7] rounded-xl px-4 h-12 text-[#0B0B0C] text-[16px] focus:outline-none focus:border-[#0B0B0C] focus:ring-4 focus:ring-black/5 transition";
+    "w-full mk-num bg-white border border-[#E0DBD0] rounded-xl px-4 h-12 text-[#1A2A31] text-[16px] focus:outline-none focus:border-[#214F5E] focus:ring-4 focus:ring-black/5 transition";
 
   return (
     <div className="grid md:grid-cols-2 gap-6 md:gap-10">
@@ -36,7 +36,7 @@ export default function ProfitCalcEmbed() {
           { label: "Ad Cost per Sale ($)", value: adSpend, set: setAdSpend },
         ].map((input) => (
           <div key={input.label}>
-            <label className="text-[13px] font-medium text-[#2A2C30] mb-1.5 block">{input.label}</label>
+            <label className="text-[13px] font-medium text-[#2B3A40] mb-1.5 block">{input.label}</label>
             <input
               type="number"
               value={input.value}
@@ -58,19 +58,19 @@ export default function ProfitCalcEmbed() {
         ].map((r) => (
           <motion.div
             key={r.label}
-            className="flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#F7F7F8]"
+            className="flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#F6F3EC]"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
           >
-            <span className="text-[14px] text-[#55595F]">{r.label}</span>
+            <span className="text-[14px] text-[#4A5A61]">{r.label}</span>
             <span
               className="mk-num text-[18px] font-semibold"
               style={{
                 color: (r as any).forceColor
                   ? (r as any).forceColor
                   : r.value < 0
-                    ? "#D92D20"
-                    : "#0B0B0C",
+                    ? "#AB3A2B"
+                    : "#1A2A31",
               }}
             >
               {r.prefix}

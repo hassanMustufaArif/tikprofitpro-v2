@@ -1,26 +1,25 @@
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, ArrowUpRight, Check, Star, TrendingUp, Factory, PlayCircle } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, PlayCircle } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import ProfitCalcEmbed from "@/components/landing/ProfitCalcEmbed";
 import FAQSection from "@/components/landing/FAQSection";
 import HeroProductMock from "@/components/landing/HeroProductMock";
-import StageBadge, { STAGE_COLORS } from "@/components/landing/StageBadge";
-import Sparkline from "@/components/landing/Sparkline";
+import { CreatorsMock, ProductDetailMock, ShopsMock, SuppliersMock } from "@/components/landing/LandingMocks";
 import { useCheckout } from "@/hooks/useCheckout";
 import { useAuth } from "@/contexts/AuthContext";
 import { savePendingPlan } from "@/lib/authFlow";
 
 const fade = {
   hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] } },
 };
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
 
 const Reveal = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
   <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-60px" }}
-    transition={{ duration: 0.5, ease: "easeOut" }} className={className}>
+    transition={{ duration: 0.6, ease: "easeOut" }} className={className}>
     {children}
   </motion.div>
 );
@@ -41,6 +40,38 @@ const GUIDES = [
   { href: "https://blog.tikprofitpro.shop/tiktok-shop-vs-amazon-dropshipping-which-is-better-for-us-sellers-in-2026/", title: "TikTok Shop vs Amazon dropshipping in 2026", tag: "Strategy" },
 ];
 
+type Feature = {
+  n: string; label: string; title: [string, string]; body: string; points: string[];
+  img: string; pos: string; mock: React.ReactNode; link?: { to: string; label: string };
+};
+
+const FEATURES: Feature[] = [
+  {
+    n: "01", label: "Products", title: ["Spot products early.", "Skip the ones that peaked."],
+    body: "Trending TikTok Shop products ranked by revenue, units sold and a virality score. Each one is tagged with its stage, so you know what to launch and what to leave alone.",
+    points: ["Emerging, rising, peaking or saturated", "Revenue and units for the last 7 days", "Sort by score, revenue, views or creators"],
+    img: "/images/rooftops-sky.webp", pos: "50% 60%", mock: <ProductDetailMock />, link: { to: "/products", label: "Browse products" },
+  },
+  {
+    n: "02", label: "Creators", title: ["See who already sells", "in your niche."],
+    body: "Browse UGC, AI-content and live creators making shoppable videos in the US, ranked by GMV, followers and engagement.",
+    points: ["Video and live GMV side by side", "Engagement and average views", "Contact email where a creator lists one"],
+    img: "/images/open-sky.webp", pos: "50% 40%", mock: <CreatorsMock />,
+  },
+  {
+    n: "03", label: "Shops", title: ["Watch the new shops", "that are taking off."],
+    body: "Recently launched US shops ranked by revenue, with the split between video, live, product card and affiliate sales.",
+    points: ["Revenue and growth for each shop", "Average price and items sold", "Where the sales come from"],
+    img: "/images/hero-dawn-market.webp", pos: "50% 75%", mock: <ShopsMock />,
+  },
+  {
+    n: "04", label: "Suppliers", title: ["Find who makes it.", "Then check the margin."],
+    body: "Click Suppliers on any product to see the top 3 Alibaba or AliExpress search results for it, with unit price and minimum order. Amazon is in beta.",
+    points: ["Top 3 results, in marketplace search order", "Unit price and MOQ at a glance", "Always order a sample before buying in bulk"],
+    img: "/images/parcels-street.webp", pos: "30% 70%", mock: <SuppliersMock />, link: { to: "/suppliers", label: "Where to source" },
+  },
+];
+
 const Landing = () => {
   const { checkout, loading: checkoutLoading } = useCheckout();
   const { session } = useAuth();
@@ -59,231 +90,100 @@ const Landing = () => {
     <div className="mk-page min-h-screen overflow-x-hidden">
       <Navbar variant="light" />
 
-      {/* ───── HERO: split, text left, photo card right ───── */}
-      <section className="pt-24 md:pt-28 pb-10">
-        <div className="mk-container">
-          <div className="grid gap-6 lg:grid-cols-[1fr,1.05fr] lg:min-h-[640px]">
-            <motion.div variants={stagger} initial="hidden" animate="show" className="flex flex-col justify-between py-4 lg:py-8">
-              <div>
-                <motion.div variants={fade} className="mk-pill">
-                  <Star className="h-3.5 w-3.5 fill-[#0B0B0C]" /> Product research for US TikTok Shop sellers
-                </motion.div>
-                <motion.h1 variants={fade} className="mk-h1 mt-7">
-                  <span className="sr-only">TikProfitPro: </span>
-                  Find TikTok Shop products before they peak
-                </motion.h1>
-              </div>
-              <div className="mt-10 lg:mt-0">
-                <motion.p variants={fade} className="mk-lead max-w-[460px]">
-                  Spot products while they're still emerging, check the real margin after TikTok's fees, and find who makes them. One tool, ten minutes.
-                </motion.p>
-                <motion.div variants={fade} className="mt-7 flex flex-wrap items-center gap-3">
-                  <Link to="/pricing#free" className="mk-btn-primary">Try it free</Link>
-                  <Link to="/calculator" className="mk-btn-secondary">Profit calculator</Link>
-                </motion.div>
-                <motion.p variants={fade} className="mt-4 text-[13px] mk-muted">Free plan, no card required.</motion.p>
-              </div>
+      {/* ───── HERO: painted dawn backdrop, centred two-line headline, product window floating over it ───── */}
+      <section className="px-2 pt-2 md:px-4 md:pt-4">
+        <div className="mk-scene pb-6 md:pb-12">
+          <img src="/images/hero-dawn-market.webp" alt="" aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-[980px] w-full object-cover md:h-[980px]"
+            style={{ objectPosition: "50% 30%", maskImage: "linear-gradient(#000 62%, transparent 100%)", WebkitMaskImage: "linear-gradient(#000 62%, transparent 100%)" }} />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#FAF8F4]/55 via-[#FAF8F4]/10 to-transparent" aria-hidden />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[760px]" aria-hidden style={{ background: "radial-gradient(ellipse 55% 50% at 50% 38%, rgba(250,248,244,0.78), rgba(250,248,244,0) 72%)" }} />
+
+          <motion.div variants={stagger} initial="hidden" animate="show" className="relative mx-auto max-w-[1100px] px-5 pt-28 text-center md:pt-40">
+            <motion.div variants={fade} className="mk-pill">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#2F8F62]" aria-hidden /> Product research for US TikTok Shop sellers
             </motion.div>
-
-            <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-              className="relative min-h-[520px] overflow-hidden rounded-[28px] bg-[#E9EEF3]">
-              <img src="/landing/hero-creator.webp" alt="A seller filming a beauty product demo on a phone"
-                className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: "50% 40%" }} />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/0 to-black/0" />
-
-              {/* Floating: momentum card */}
-              <div className="absolute right-4 top-4 md:right-6 md:top-6 w-[230px] rounded-2xl bg-white p-4 shadow-[0_12px_32px_-12px_rgba(16,24,40,0.35)]">
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-medium text-[#0B0B0C]">Momentum, 7 days</span>
-                  <StageBadge stage="emerging" />
-                </div>
-                <div className="mt-3 flex items-end gap-1.5 h-[72px]">
-                  {[18, 22, 26, 34, 45, 58, 78].map((h, i) => (
-                    <div key={i} className="flex-1 rounded-[4px]" style={{ height: `${h}%`, background: i === 6 ? "#12B76A" : "#D1FADF" }} />
-                  ))}
-                </div>
-                <div className="mt-3 flex items-baseline justify-between">
-                  <span className="text-[22px] font-semibold tracking-tight mk-num">+212%</span>
-                  <span className="text-[11px] mk-muted">GMV vs last week</span>
-                </div>
-              </div>
-
-              {/* Floating: supplier chip */}
-              <div className="absolute left-4 bottom-20 md:left-6 md:bottom-24 flex items-center gap-3 rounded-2xl bg-white/95 px-4 py-3 shadow-[0_12px_32px_-12px_rgba(16,24,40,0.35)] backdrop-blur">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0B0B0C]"><Factory className="h-4 w-4 text-white" /></span>
-                <div className="text-[13px] leading-tight">
-                  <div className="font-medium text-[#0B0B0C]">Supplier results found</div>
-                  <div className="mk-muted mk-num">from $2.10 a unit · MOQ 200</div>
-                </div>
-              </div>
-
-              {/* Bottom caption */}
-              <div className="absolute inset-x-4 bottom-4 md:inset-x-6 md:bottom-6 flex items-center justify-between text-white">
-                <span className="flex items-center gap-2 text-[14px] font-medium"><TrendingUp className="h-4 w-4" /> Est. margin 58% after fees</span>
-                <span className="text-[12px] text-white/70">Example</span>
-              </div>
+            <motion.h1 variants={fade} className="mk-h1 mt-7">
+              <span className="sr-only">TikProfitPro: </span>
+              <span className="inline-block">Find what's selling on TikTok Shop.</span><br />
+              <span className="mk-soft-line">Before everyone else does.</span>
+            </motion.h1>
+            <motion.p variants={fade} className="mk-lead mx-auto mt-6 max-w-[620px] rounded-2xl bg-[#FAF8F4]/70 px-3 py-2 !text-[#33454C] backdrop-blur-[2px] md:bg-transparent md:p-0 md:backdrop-blur-none">
+              Spot products while they're still emerging, see the creators and shops behind them, find suppliers and check the real margin after TikTok's fees.
+            </motion.p>
+            <motion.div variants={fade} className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Link to="/pricing#free" className="mk-btn-primary">Try it free <ArrowRight className="h-4 w-4" /></Link>
+              <Link to="/calculator" className="mk-btn-secondary">Profit calculator</Link>
             </motion.div>
-          </div>
+            <motion.p variants={fade} className="mt-4"><span className="inline-block rounded-full bg-[#FAF8F4]/80 px-3 py-1 text-[13px] text-[#33454C] backdrop-blur">Free plan, no card required.</span></motion.p>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="relative mx-auto mt-12 max-w-[1120px] px-3 md:mt-16 md:px-8">
+            <HeroProductMock />
+          </motion.div>
         </div>
       </section>
 
       {/* ───── SOURCES STRIP ───── */}
-      <section className="border-y mk-divider">
-        <div className="mk-container flex flex-col md:flex-row md:items-center gap-4 md:gap-10 py-7">
-          <p className="text-[13px] mk-muted shrink-0">Data and matching across</p>
-          <div className="flex flex-1 flex-wrap items-center justify-between gap-x-10 gap-y-3">
-            {["TikTok Shop", "Alibaba", "AliExpress", "Amazon"].map((n) => (
-              <span key={n} className="text-[18px] md:text-[20px] font-semibold tracking-[-0.02em] text-[#9A9EA5]">{n}</span>
+      <section>
+        <div className="mk-container flex flex-col items-center gap-3 py-10 text-center md:flex-row md:justify-center md:gap-10">
+          <p className="mk-eyebrow">Built for</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
+            {["TikTok Shop sellers", "Alibaba", "AliExpress", "Amazon (beta)"].map((n) => (
+              <span key={n} className="font-display text-[22px] md:text-[26px] text-[#5B6A70]">{n}</span>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ───── PRODUCT TABLE (Ahrefs-style, product first) ───── */}
-      <section id="features" className="py-20 md:py-28">
+      {/* ───── 01–04 FEATURES ───── */}
+      <section id="features" className="py-16 md:py-24">
         <div className="mk-container">
-          <Reveal className="mx-auto max-w-3xl text-center">
-            <h2 className="mk-h2">Every trending product, scored and staged</h2>
-            <p className="mk-lead mt-5">Sort trending TikTok Shop products by momentum, sales and margin. Each one is tagged with where it is in its life cycle, so you know what to launch and what to skip.</p>
+          <Reveal className="max-w-[720px]">
+            <p className="mk-eyebrow">How it works</p>
+            <h2 className="mk-h2 mt-4">Four views of one market.<br /><span className="mk-soft-line">Each a step closer to a sale.</span></h2>
           </Reveal>
-          <Reveal className="mt-12 md:mt-16">
-            <HeroProductMock />
-          </Reveal>
-          <Reveal className="mt-10 grid gap-px overflow-hidden rounded-2xl border mk-divider bg-[#ECECEE] sm:grid-cols-2 lg:grid-cols-4">
-            {([
-              ["emerging", [2, 3, 3, 5, 7, 10, 14], "Early and growing fast. The best time to launch."],
-              ["rising", [5, 7, 8, 10, 12, 13, 15], "Proven demand, still climbing. Launch with a twist."],
-              ["peaking", [8, 12, 15, 17, 18, 18, 17], "Crowded and slowing. Only with a real edge."],
-              ["saturated", [18, 17, 15, 13, 11, 10, 9], "Declining. Skip it."],
-            ] as const).map(([stage, pts, note]) => (
-              <div key={stage} className="bg-white p-6">
-                <StageBadge stage={stage} />
-                <div className="mt-4"><Sparkline points={[...pts]} color={STAGE_COLORS[stage]} width={160} height={40} /></div>
-                <p className="mt-3 text-[14px] leading-relaxed mk-muted">{note}</p>
-              </div>
+
+          <div className="mt-14 space-y-20 md:mt-20 md:space-y-28">
+            {FEATURES.map((f, i) => (
+              <Reveal key={f.n} className="grid items-center gap-8 lg:grid-cols-[0.85fr,1.15fr] lg:gap-14">
+                <div className={i % 2 ? "lg:order-2" : ""}>
+                  <div className="flex items-baseline gap-3">
+                    <span className="font-display text-[44px] leading-none text-[#214F5E] mk-num">{f.n}</span>
+                    <span className="mk-eyebrow">{f.label}</span>
+                  </div>
+                  <h3 className="mk-h3 mt-5 !text-[30px] md:!text-[38px] !leading-[1.08]">{f.title[0]}<br /><span className="mk-soft-line">{f.title[1]}</span></h3>
+                  <p className="mk-lead mt-5 max-w-[460px]">{f.body}</p>
+                  <ul className="mt-6 space-y-2.5 border-t mk-divider pt-5">
+                    {f.points.map((p) => (
+                      <li key={p} className="flex items-start gap-2.5 text-[14.5px] text-[#2B3A40]">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#214F5E]" /> {p}
+                      </li>
+                    ))}
+                  </ul>
+                  {f.link && (
+                    <Link to={f.link.to} className="mt-6 inline-flex items-center gap-1.5 text-[15px] font-medium text-[#214F5E] hover:underline underline-offset-4">
+                      {f.link.label} <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  )}
+                </div>
+                <div className={`mk-scene flex min-h-[340px] items-center justify-center p-3 sm:p-8 md:min-h-[440px] md:p-12 ${i % 2 ? "lg:order-1" : ""}`}>
+                  <img src={f.img} alt="" aria-hidden loading="lazy" className="mk-scene-img" style={{ objectPosition: f.pos }} />
+                  <div className="relative w-full max-w-[440px]">{f.mock}</div>
+                </div>
+              </Reveal>
             ))}
-          </Reveal>
+          </div>
         </div>
       </section>
 
-      {/* ───── BIG NUMBERS ───── */}
-      <section className="mk-soft py-16 md:py-20">
-        <div className="mk-container grid grid-cols-2 gap-y-10 md:grid-cols-4">
-          {[
-            ["Fresh", "trending products updated regularly"],
-            ["Top 3", "supplier results per search"],
-            ["6%", "TikTok US referral fee, built in"],
-            ["2+", "sourcing marketplaces (Amazon in beta)"],
-          ].map(([k, v]) => (
-            <div key={v} className="px-2">
-              <div className="text-[44px] md:text-[64px] font-semibold leading-none tracking-[-0.045em] mk-num">{k}</div>
-              <div className="mt-3 text-[15px] mk-muted">{v}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ───── FEATURE ROWS ───── */}
-      <section id="how-it-works" className="py-20 md:py-28">
-        <div className="mk-container space-y-20 md:space-y-28">
-          {/* Profit */}
-          <Reveal className="grid items-center gap-10 lg:grid-cols-2">
-            <div>
-              <p className="text-[14px] font-medium text-[#0B0B0C]">01 · Check the numbers</p>
-              <h3 className="mk-h2 mt-4">Know your real margin before you spend a dollar</h3>
-              <p className="mk-lead mt-5 max-w-[480px]">Most "winning products" stop winning once you add the fees. Every margin includes TikTok's 6% referral fee, creator commission, shipping and ad cost.</p>
-              <Link to="/calculator" className="mt-7 inline-flex items-center gap-1.5 text-[15px] font-medium text-[#0B0B0C] hover:underline">Open the calculator <ArrowRight className="h-4 w-4" /></Link>
-            </div>
-            <div className="mk-soft rounded-[28px] p-6 md:p-10">
-              <div className="mk-card p-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-[14px] font-medium">Heatless curling ribbon</span>
-                  <StageBadge stage="emerging" />
-                </div>
-                <div className="mt-5 space-y-3 text-[15px] mk-num">
-                  {[["Sale price", "$24.99"], ["Product cost + shipping", "−$6.40"], ["TikTok referral fee (6%)", "−$1.50"], ["Creator commission (15%)", "−$3.75"], ["Ad cost per sale", "−$2.00"]].map(([k, v]) => (
-                    <div key={k} className="flex justify-between"><span className="mk-muted">{k}</span><span>{v}</span></div>
-                  ))}
-                  <div className="flex justify-between border-t mk-divider pt-3 text-[17px] font-semibold"><span>Net profit per sale</span><span className="text-[#067647]">$11.34</span></div>
-                  <div className="flex justify-between text-[13px] mk-muted"><span>Margin 45% · Break-even at $10.63</span><span>Example</span></div>
-                </div>
-              </div>
-            </div>
-          </Reveal>
-
-          {/* Source */}
-          <Reveal className="grid items-center gap-10 lg:grid-cols-2">
-            <div className="lg:order-2">
-              <p className="text-[14px] font-medium text-[#0B0B0C]">02 · Find who makes it</p>
-              <h3 className="mk-h2 mt-4">Match any product to suppliers in one click</h3>
-              <p className="mk-lead mt-5 max-w-[480px]">Search Alibaba and AliExpress (Amazon in beta) for similar listings, then compare unit cost, minimum order and shipping side by side.</p>
-              <Link to="/suppliers" className="mt-7 inline-flex items-center gap-1.5 text-[15px] font-medium text-[#0B0B0C] hover:underline">Where to source <ArrowRight className="h-4 w-4" /></Link>
-            </div>
-            <div className="mk-soft rounded-[28px] p-6 md:p-10 lg:order-1">
-              <div className="mk-card overflow-hidden">
-                <div className="grid grid-cols-[1fr,auto,auto,auto] gap-x-5 px-5 py-3 text-[12px] mk-muted bg-[#FAFAFA] border-b mk-divider">
-                  <span>Listing</span><span className="text-right">Unit</span><span className="text-right">MOQ</span><span className="text-right">Match</span>
-                </div>
-                {[
-                  ["Factory listing · Alibaba", "$2.10", "200", "High", "#067647", "#ECFDF3"],
-                  ["Store listing · AliExpress", "$3.45", "1", "High", "#067647", "#ECFDF3"],
-                  ["Similar item · Amazon", "$7.99", "1", "Partial", "#B54708", "#FFFAEB"],
-                ].map(([n, c, m, conf, fg, bg]) => (
-                  <div key={n} className="grid grid-cols-[1fr,auto,auto,auto] items-center gap-x-5 px-5 py-3.5 text-[14px] border-b mk-divider last:border-0">
-                    <span className="font-medium">{n}</span>
-                    <span className="text-right mk-num">{c}</span>
-                    <span className="text-right mk-num mk-muted">{m}</span>
-                    <span className="rounded-full px-2 py-0.5 text-[12px] font-medium" style={{ color: fg, background: bg }}>{conf}</span>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-4 text-[13px] mk-muted">Example results. Always order a sample before buying in bulk.</p>
-            </div>
-          </Reveal>
-
-          {/* Creators */}
-          <Reveal className="grid items-center gap-10 lg:grid-cols-2">
-            <div>
-              <p className="text-[14px] font-medium text-[#0B0B0C]">03 · Get it in front of buyers</p>
-              <h3 className="mk-h2 mt-4">See which creators and shops are already selling</h3>
-              <p className="mk-lead mt-5 max-w-[480px]">Browse UGC and AI-content creators by revenue, followers and engagement, plus the fastest-growing new shops in your niche.</p>
-            </div>
-            <div className="mk-soft rounded-[28px] p-6 md:p-10">
-              <div className="grid grid-cols-2 gap-3">
-                {[["UGC creators", "Video GMV"], ["AIGC creators", "Engagement"], ["New shops", "Growth rate"], ["Live sellers", "Live GMV"]].map(([t, m]) => (
-                  <div key={t} className="mk-card p-5">
-                    <div className="text-[15px] font-medium">{t}</div>
-                    <div className="mt-1 text-[13px] mk-muted">Sort by {m.toLowerCase()}</div>
-                    <ArrowUpRight className="mt-6 h-4 w-4" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ───── DEMO ───── */}
-      <section className="pb-20 md:pb-28">
-        <div className="mk-container">
-          <Reveal className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-            <h2 className="mk-h2 max-w-xl">From trending video to supplier in two minutes</h2>
-            <Link to="/tutorials" className="mk-btn-secondary self-start md:self-auto"><PlayCircle className="h-4 w-4" /> Watch tutorials</Link>
-          </Reveal>
-          <Reveal className="overflow-hidden rounded-[28px] bg-[#0B0B0C] p-2 md:p-3">
-            <video src="/screenshots/dashboard-demo.mp4" poster="/screenshots/dashboard-preview.png" className="block w-full rounded-[20px]" autoPlay loop muted playsInline preload="metadata">
-              Your browser does not support embedded video.
-            </video>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ───── CALCULATOR ───── */}
+      {/* ───── MARGIN / CALCULATOR ───── */}
       <section className="mk-soft py-20 md:py-28">
         <div className="mk-container">
-          <Reveal className="mb-10 max-w-2xl">
-            <h2 className="mk-h2">Try the profit calculator</h2>
-            <p className="mk-lead mt-4">Free, no sign-up. Change any number and the result updates instantly.</p>
+          <Reveal className="mb-10 grid gap-6 md:grid-cols-[1fr,1fr] md:items-end">
+            <h2 className="mk-h2">Check the real margin.<br /><span className="mk-soft-line">Before you spend a dollar.</span></h2>
+            <p className="mk-lead max-w-[460px]">Free, no sign-up. Every result includes TikTok's 6% US referral fee, creator commission and ad cost. Change any number and it updates instantly.</p>
           </Reveal>
           <Reveal className="mk-card p-5 md:p-8">
             <ProfitCalcEmbed />
@@ -291,28 +191,43 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* ───── PRICING ───── */}
-      <section id="pricing" className="py-20 md:py-28">
+      {/* ───── DEMO ───── */}
+      <section className="py-20 md:py-28">
         <div className="mk-container">
-          <Reveal className="mx-auto mb-12 max-w-2xl text-center">
-            <h2 className="mk-h2">Simple pricing</h2>
-            <p className="mk-lead mt-4">Start free. Upgrade when you're ready to source.</p>
+          <Reveal className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <h2 className="mk-h2 max-w-xl">From trending video<br /><span className="mk-soft-line">to supplier in two minutes.</span></h2>
+            <Link to="/tutorials" className="mk-btn-secondary self-start md:self-auto"><PlayCircle className="h-4 w-4" /> Watch tutorials</Link>
+          </Reveal>
+          <Reveal className="overflow-hidden rounded-[22px] border mk-divider bg-white p-2 shadow-soft md:p-3">
+            <video src="/screenshots/dashboard-demo.mp4" poster="/screenshots/dashboard-preview.png" className="block w-full rounded-[16px]" autoPlay loop muted playsInline preload="metadata">
+              Your browser does not support embedded video.
+            </video>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ───── PRICING ───── */}
+      <section id="pricing" className="border-t mk-divider py-20 md:py-28">
+        <div className="mk-container">
+          <Reveal className="mb-12 grid gap-6 md:grid-cols-[1fr,auto] md:items-end">
+            <h2 className="mk-h2">Simple pricing.<br /><span className="mk-soft-line">Start free, upgrade to source.</span></h2>
+            <Link to="/pricing" className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#214F5E] hover:underline underline-offset-4">Compare plans <ArrowRight className="h-4 w-4" /></Link>
           </Reveal>
           <div className="grid gap-4 md:grid-cols-3">
             {PLANS.map((p) => (
-              <Reveal key={p.name} className={`flex flex-col rounded-[24px] p-7 md:p-8 ${p.featured ? "bg-[#0B0B0C] text-white" : "mk-card"}`}>
+              <Reveal key={p.name} className={`flex flex-col rounded-2xl border p-7 md:p-8 ${p.featured ? "border-[#214F5E] bg-white shadow-[0_0_0_1px_#214F5E,0_24px_60px_-24px_rgba(33,79,94,0.35)]" : "mk-flat"}`}>
                 <div className="flex items-center justify-between">
-                  <h3 className="text-[16px] font-medium">{p.name}</h3>
-                  {p.featured && <span className="rounded-full bg-white/10 px-2.5 py-1 text-[12px] font-medium">Most popular</span>}
+                  <h3 className="text-[15px] font-medium text-[#1A2A31]">{p.name}</h3>
+                  {p.featured && <span className="rounded-full bg-[#E7EFF2] px-2.5 py-1 text-[12px] font-medium text-[#173F4C]">Most popular</span>}
                 </div>
-                <div className="mt-5 flex items-baseline gap-1">
-                  <span className="text-[52px] font-semibold leading-none tracking-[-0.04em] mk-num">{p.price}</span>
-                  <span className={`text-[15px] ${p.featured ? "text-white/60" : "mk-muted"}`}>{p.period}</span>
+                <div className="mt-5 flex items-baseline gap-1.5">
+                  <span className="font-display text-[56px] leading-none mk-num text-[#1A2A31]">{p.price}</span>
+                  <span className="text-[15px] mk-muted">{p.period}</span>
                 </div>
-                <ul className="mt-7 flex-1 space-y-3">
+                <ul className="mt-7 flex-1 space-y-3 border-t mk-divider pt-6">
                   {p.features.map((f) => (
-                    <li key={f} className={`flex items-start gap-2.5 text-[15px] ${p.featured ? "text-white/85" : "text-[#2A2C30]"}`}>
-                      <Check className={`mt-0.5 h-4 w-4 shrink-0 ${p.featured ? "text-[#32D583]" : "text-[#12B76A]"}`} /> {f}
+                    <li key={f} className="flex items-start gap-2.5 text-[14.5px] text-[#2B3A40]">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#214F5E]" /> {f}
                     </li>
                   ))}
                 </ul>
@@ -321,7 +236,7 @@ const Landing = () => {
                     {checkoutLoading ? "Loading…" : p.cta}
                   </button>
                 ) : p.featured ? (
-                  <Link to={p.to!} className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-full bg-white text-[15px] font-medium text-[#0B0B0C] hover:bg-white/90">{p.cta}</Link>
+                  <Link to={p.to!} className="mk-btn-primary mt-8 w-full">{p.cta}</Link>
                 ) : (
                   <Link to={p.to!} className="mk-btn-secondary mt-8 w-full">{p.cta}</Link>
                 )}
@@ -337,15 +252,15 @@ const Landing = () => {
         <div className="mk-container">
           <Reveal className="mx-auto grid max-w-4xl items-center gap-8 md:grid-cols-[auto,1fr]">
             <img src="/founder-arif.webp" alt="Muhammad Arif Suriwala, founder of TikProfitPro"
-              className="h-32 w-32 md:h-40 md:w-40 rounded-[24px] object-cover" style={{ objectPosition: "50% 15%" }} />
+              className="h-32 w-32 rounded-2xl object-cover md:h-40 md:w-40" style={{ objectPosition: "50% 15%" }} />
             <div>
-              <p className="text-[22px] md:text-[28px] font-medium leading-snug tracking-[-0.02em]">
+              <p className="font-display text-[26px] leading-snug text-[#1A2A31] md:text-[34px]">
                 "I'm building TikProfitPro to give TikTok Shop sellers the research I wished existed: honest data, real margins and suppliers you can actually order from."
               </p>
               <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[15px]">
-                <span className="font-medium">Muhammad Arif Suriwala</span>
+                <span className="font-medium text-[#1A2A31]">Muhammad Arif Suriwala</span>
                 <span className="mk-muted">Founder & AI engineer</span>
-                <a href="https://www.linkedin.com/in/sodewala" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium hover:underline">LinkedIn <ArrowUpRight className="h-4 w-4" /></a>
+                <a href="https://www.linkedin.com/in/sodewala" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-[#214F5E] hover:underline">LinkedIn <ArrowUpRight className="h-4 w-4" /></a>
               </div>
             </div>
           </Reveal>
@@ -356,16 +271,16 @@ const Landing = () => {
       <section className="pb-20 md:pb-28">
         <div className="mk-container">
           <div className="mb-8 flex items-end justify-between gap-4">
-            <h2 className="mk-h2">Learn the playbook</h2>
-            <a href="https://blog.tikprofitpro.shop/" className="hidden sm:inline-flex items-center gap-1 text-[15px] font-medium hover:underline">All guides <ArrowRight className="h-4 w-4" /></a>
+            <h2 className="mk-h2">Learn the playbook.</h2>
+            <a href="https://blog.tikprofitpro.shop/" className="hidden items-center gap-1 text-[15px] font-medium text-[#214F5E] hover:underline sm:inline-flex">All guides <ArrowRight className="h-4 w-4" /></a>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {GUIDES.map((g) => (
-              <a key={g.href} href={g.href} className="group mk-soft flex min-h-[200px] flex-col justify-between rounded-[24px] p-6 transition-colors hover:bg-[#EDEDEF]">
-                <span className="text-[13px] mk-muted">{g.tag}</span>
+              <a key={g.href} href={g.href} className="group mk-flat flex min-h-[200px] flex-col justify-between p-6 transition-shadow hover:shadow-soft">
+                <span className="mk-eyebrow">{g.tag}</span>
                 <div>
-                  <h3 className="text-[18px] font-medium leading-snug tracking-[-0.01em]">{g.title}</h3>
-                  <ArrowUpRight className="mt-4 h-5 w-5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                  <h3 className="font-display text-[22px] leading-snug text-[#1A2A31]">{g.title}</h3>
+                  <ArrowUpRight className="mt-4 h-5 w-5 text-[#214F5E] transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 </div>
               </a>
             ))}
@@ -375,19 +290,17 @@ const Landing = () => {
 
       <FAQSection />
 
-      {/* ───── FINAL CTA ───── */}
-      <section className="pb-16 md:pb-24">
-        <div className="mk-container">
-          <div className="rounded-[32px] bg-[#0B0B0C] px-6 py-16 md:px-16 md:py-24 text-white">
-            <div className="grid items-end gap-10 md:grid-cols-[1.4fr,1fr]">
-              <h2 className="text-[38px] md:text-[60px] font-semibold leading-[1.02] tracking-[-0.045em]">Your next winner is emerging right now</h2>
-              <div>
-                <p className="text-[17px] text-white/65">Start free and see this week's emerging products in minutes.</p>
-                <div className="mt-7 flex flex-wrap gap-3">
-                  <Link to="/pricing#free" className="inline-flex h-12 items-center rounded-full bg-white px-6 text-[15px] font-medium text-[#0B0B0C] hover:bg-white/90">Try it free</Link>
-                  <Link to="/pricing" className="inline-flex h-12 items-center rounded-full bg-white/10 px-6 text-[15px] font-medium hover:bg-white/15">See pricing</Link>
-                </div>
-              </div>
+      {/* ───── FINAL CTA over the open sky ───── */}
+      <section className="px-2 pb-2 md:px-4 md:pb-4">
+        <div className="mk-scene px-6 py-20 text-center md:py-32">
+          <img src="/images/open-sky.webp" alt="" aria-hidden loading="lazy" className="mk-scene-img" style={{ objectPosition: "50% 85%" }} />
+          <div className="pointer-events-none absolute inset-0 bg-[#FAF8F4]/25" aria-hidden />
+          <div className="relative mx-auto max-w-[760px]">
+            <h2 className="mk-h2">Your next winner is emerging.<br /><span className="mk-soft-line">Find it this week.</span></h2>
+            <p className="mk-lead mx-auto mt-5 max-w-[480px] !text-[#33454C]">Start free and see this week's emerging products in minutes.</p>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Link to="/pricing#free" className="mk-btn-primary">Try it free <ArrowRight className="h-4 w-4" /></Link>
+              <Link to="/pricing" className="mk-btn-secondary">See pricing</Link>
             </div>
           </div>
         </div>

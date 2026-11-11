@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import Wordmark from "@/components/Wordmark";
 
 const COLS: { title: string; links: { label: string; to: string; external?: boolean }[] }[] = [
   { title: "Product", links: [
@@ -23,14 +24,14 @@ const COLS: { title: string; links: { label: string; to: string; external?: bool
 export default function Footer({ variant = "dark" }: { variant?: "light" | "dark" }) {
   const light = variant === "light";
   const c = light
-    ? { wrap: "border-[#ECECEE] bg-white text-[#0B0B0C]", head: "text-[#0B0B0C]", link: "text-[#6B6F76] hover:text-[#0B0B0C]", line: "border-[#ECECEE]", fine: "text-[#9A9EA5]" }
+    ? { wrap: "border-[#E6E1D7] bg-[#F3F0E9] text-[#1A2A31]", head: "text-[#1A2A31]", link: "text-[#4A5A61] hover:text-[#1A2A31]", line: "border-[#E6E1D7]", fine: "text-[#5B6A70]" }
     : { wrap: "border-white/[0.07] bg-[#080808] text-[#EDEEF0]", head: "text-[#EDEEF0]", link: "text-[#8A9099] hover:text-white", line: "border-white/[0.07]", fine: "text-[#5E636B]" };
   return (
     <footer className={`border-t ${c.wrap}`}>
       <div className="max-w-[1200px] mx-auto px-5 md:px-8 py-12 md:py-16 grid gap-10 md:grid-cols-[1.4fr,1fr,1fr,1fr]">
         <div>
-          <img src="/tikprofitpro_logo.svg" alt="TikProfitPro" style={{ height: 26 }} />
-          <p className={`mt-3 max-w-xs text-[14px] leading-relaxed ${light ? "text-[#6B6F76]" : "text-[#8A9099]"}`}>
+          {light ? <Wordmark size={24} /> : <img src="/tikprofitpro_logo.svg" alt="TikProfitPro" style={{ height: 26 }} />}
+          <p className={`mt-3 max-w-xs text-[14px] leading-relaxed ${light ? "text-[#4A5A61]" : "text-[#8A9099]"}`}>
             Product research for US TikTok Shop sellers: momentum, margins and suppliers in one place.
           </p>
         </div>

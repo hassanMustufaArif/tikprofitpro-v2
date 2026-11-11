@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import AuthShell from "@/components/AuthShell";
 import { MIN_PASSWORD_LENGTH } from "@/lib/authFlow";
 
 /** Reads an auth error Supabase puts in the URL (e.g. an expired link): ?error_description= or #error_description=. */
@@ -56,12 +57,7 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-2">
-          <img src="/tikprofitpro_icon.svg" alt="TikProfitPro" className="h-12 w-12 mx-auto mb-2" />
-          <h1 className="text-2xl font-bold tracking-tight">Set a new password</h1>
-        </div>
+    <AuthShell title="Set a new password">
 
         {status === "checking" && (
           <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
@@ -96,8 +92,7 @@ const ResetPassword = () => {
             </Button>
           </form>
         )}
-      </div>
-    </div>
+      </AuthShell>
   );
 };
 

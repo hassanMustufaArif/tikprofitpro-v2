@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import AuthShell from "@/components/AuthShell";
 import ContinueToCheckout from "@/components/ContinueToCheckout";
 import { isEmailNotConfirmed, loginErrorMessage, loginReturnUrl, readPendingPlan } from "@/lib/authFlow";
 
@@ -74,30 +75,14 @@ const Login = () => {
 
   if (session && pendingPlan) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <div className="w-full max-w-sm space-y-6">
-          <div className="text-center space-y-2">
-            <img src="/tikprofitpro_icon.svg" alt="TikProfitPro" className="h-12 w-12 mx-auto mb-2" />
-            <h1 className="text-2xl font-bold tracking-tight">
-              Tik<span style={{ color: "#25F4EE" }}>Profit</span><span style={{ color: "#FE2C55" }}>Pro</span>
-            </h1>
-          </div>
+      <AuthShell title="Almost there." subtitle="Finish checkout to start your plan.">
           <ContinueToCheckout plan={pendingPlan} email={session.user?.email} />
-        </div>
-      </div>
+        </AuthShell>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-2">
-          <img src="/tikprofitpro_icon.svg" alt="TikProfitPro" className="h-12 w-12 mx-auto mb-2" />
-          <h1 className="text-2xl font-bold tracking-tight">
-            Tik<span style={{ color: "#25F4EE" }}>Profit</span><span style={{ color: "#FE2C55" }}>Pro</span>
-          </h1>
-          <p className="text-sm text-muted-foreground">Log in to your account</p>
-        </div>
+    <AuthShell title="Welcome back." subtitle="Log in to your TikProfitPro account.">
 
         <div className="space-y-3">
           <Button
@@ -178,8 +163,7 @@ const Login = () => {
             Sign Up
           </Link>
         </p>
-      </div>
-    </div>
+      </AuthShell>
   );
 };
 

@@ -139,11 +139,11 @@ export default function ProfitCalculator() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
+      <Navbar variant="light" />
       <main className="flex-1 pt-28 pb-16 px-4 md:px-6">
         <ProfitCalculatorContent />
       </main>
-      <Footer />
+      <Footer variant="light" />
     </div>
   );
 }

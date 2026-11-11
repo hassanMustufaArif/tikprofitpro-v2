@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import AuthShell from "@/components/AuthShell";
 import { RESET_REDIRECT_URL } from "@/lib/authFlow";
 
 const ForgotPassword = () => {
@@ -28,13 +29,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-2">
-          <img src="/tikprofitpro_icon.svg" alt="TikProfitPro" className="h-12 w-12 mx-auto mb-2" />
-          <h1 className="text-2xl font-bold tracking-tight">Reset your password</h1>
-          <p className="text-sm text-muted-foreground">We'll email you a link to set a new password.</p>
-        </div>
+    <AuthShell title="Reset your password" subtitle="We'll email you a link to set a new password.">
 
         {state === "sent" ? (
           <div className="space-y-4 rounded-xl border border-border bg-card p-6 text-sm">
@@ -58,8 +53,7 @@ const ForgotPassword = () => {
         <p className="text-center text-sm text-muted-foreground">
           <Link to="/login" className="text-primary hover:underline">Back to log in</Link>
         </p>
-      </div>
-    </div>
+      </AuthShell>
   );
 };
 

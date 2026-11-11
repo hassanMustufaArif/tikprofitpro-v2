@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,56 +6,57 @@
 
 @layer base {
   :root {
-    /* App design system: light, quiet, data-first (Ahrefs / Kalodata density, Linear restraint) */
-    --background: 0 0% 98.4%;          /* #FBFBFB page */
-    --foreground: 240 5% 6%;           /* #0E0E10 ink */
+    /* Calm editorial system: warm paper, deep harbor ink, one accent, hairline borders, soft shadows. */
+    --background: 40 33% 97%;          /* #FAF8F4 warm paper */
+    --foreground: 200 27% 14%;         /* #1A2A31 ink */
 
     --card: 0 0% 100%;
-    --card-foreground: 240 5% 6%;
+    --card-foreground: 200 27% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 5% 6%;
+    --popover-foreground: 200 27% 14%;
 
-    --primary: 240 5% 6%;              /* black buttons, like the landing page */
-    --primary-foreground: 0 0% 100%;
+    --primary: 199 46% 24%;            /* #214F5E harbor: buttons, links, focus */
+    --primary-foreground: 40 33% 98%;
 
-    --secondary: 240 5% 95.5%;
-    --secondary-foreground: 240 5% 10%;
+    --secondary: 40 22% 93%;           /* #F0EDE6 */
+    --secondary-foreground: 200 27% 14%;
 
-    --muted: 240 5% 96%;
-    --muted-foreground: 220 5% 44%;    /* #6B6F76 */
+    --muted: 40 20% 94.5%;             /* #F3F1EC */
+    --muted-foreground: 200 9% 36%;    /* #546166, 5.9:1 on paper */
 
-    --accent: 240 5% 96%;
-    --accent-foreground: 240 5% 6%;
+    --accent: 196 32% 93%;             /* #E7EFF2 harbor wash */
+    --accent-foreground: 199 46% 20%;
 
-    --destructive: 4 74% 49%;          /* #D92D20 */
+    --destructive: 4 60% 42%;          /* #AB3A2B */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 5% 92%;              /* #E9E9EC hairlines */
-    --input: 240 5% 90%;
-    --ring: 240 5% 6%;
+    --border: 38 16% 87%;              /* #E3DFD6 hairlines */
+    --input: 38 14% 83%;
+    --ring: 199 46% 30%;
 
-    --radius: 0.5rem;
+    --radius: 0.625rem;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 220 5% 34%;
-    --sidebar-primary: 240 5% 6%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 5% 95.5%;
-    --sidebar-accent-foreground: 240 5% 6%;
-    --sidebar-border: 240 5% 92%;
-    --sidebar-ring: 240 5% 6%;
+    --sidebar-background: 40 30% 96%;
+    --sidebar-foreground: 200 12% 30%;
+    --sidebar-primary: 199 46% 24%;
+    --sidebar-primary-foreground: 40 33% 98%;
+    --sidebar-accent: 40 22% 91%;
+    --sidebar-accent-foreground: 200 27% 14%;
+    --sidebar-border: 38 16% 87%;
+    --sidebar-ring: 199 46% 30%;
 
-    --success: 155 90% 24%;            /* #067647 positive numbers */
+    --success: 152 58% 26%;            /* #1C6B47 */
     --success-foreground: 0 0% 100%;
-    --warning: 28 92% 37%;             /* #B54708 */
+    --warning: 32 86% 31%;             /* #93550B */
     --warning-foreground: 0 0% 100%;
-    --info: 214 79% 46%;
+    --info: 205 55% 36%;
     --info-foreground: 0 0% 100%;
 
     --gradient-primary: none;
     --gradient-card: none;
     --shadow-glow: none;
+    --shadow-soft: 0 0 0 1px rgba(26, 42, 49, 0.06), 0 2px 6px rgba(26, 42, 49, 0.04), 0 18px 48px -18px rgba(26, 42, 49, 0.16);
   }
 
   * {
@@ -68,41 +69,56 @@
     font-feature-settings: "cv11", "ss01";
   }
 
+  ::selection { background: hsl(196 40% 86%); }
+
   /* Numbers line up in every table and stat */
   table, .tabular { font-variant-numeric: tabular-nums; }
 }
 
 @layer components {
-  /* App (logged-in) primitives */
-  .app-h1 { @apply text-[22px] leading-tight font-semibold tracking-[-0.02em] text-foreground; }
+  /* ── App (logged-in) primitives ── */
+  .app-h1 { @apply font-display text-[30px] md:text-[34px] leading-[1.1] font-normal tracking-[-0.01em] text-foreground; }
   .app-sub { @apply text-[13px] text-muted-foreground; }
-  .app-panel { @apply rounded-lg border border-border bg-card; }
-  .app-th { @apply h-10 px-3 text-left text-[12px] font-medium text-muted-foreground whitespace-nowrap select-none; }
-  .app-td { @apply px-3 py-2.5 align-middle text-[13px]; }
+  .app-panel { @apply rounded-xl border border-border bg-card; box-shadow: var(--shadow-soft); }
+  .app-th { @apply h-10 px-3 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground whitespace-nowrap select-none; }
+  .app-td { @apply px-3 py-3 align-middle text-[13px]; }
   .app-num { @apply text-right tabular-nums; font-variant-numeric: tabular-nums; }
-  .app-chip { @apply inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] text-foreground transition-colors hover:bg-muted; }
-  .app-chip-on { @apply border-foreground bg-foreground text-background hover:bg-foreground; }
-  .app-btn { @apply inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-foreground px-3 text-[13px] font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-40; }
-  .app-btn-ghost { @apply inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-border bg-card px-3 text-[13px] font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-40; }
-  .app-up { color: #067647; }
-  .app-down { color: #D92D20; }
+  .app-chip { @apply inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-[13px] text-foreground transition-colors hover:bg-muted; }
+  .app-chip-on { @apply border-primary bg-primary text-primary-foreground hover:bg-primary; }
+  .app-btn { @apply inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 text-[13px] font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-40; }
+  .app-btn-ghost { @apply inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3 text-[13px] font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-40; }
+  .app-up { color: #1C6B47; }
+  .app-down { color: #AB3A2B; }
+  /* Bold fit-score chip: a number with a soft harbor wash */
+  .app-score { @apply inline-flex h-7 min-w-[2.25rem] items-center justify-center rounded-md px-1.5 text-[13px] font-semibold tabular-nums; background: #E7EFF2; color: #173F4C; }
+  .app-score-hi { background: #214F5E; color: #FAF8F4; }
+  .app-score-lo { background: #F0EDE6; color: #546166; }
+  .app-thumb { @apply rounded-lg object-cover shrink-0 border border-border bg-muted; }
+  .app-eyebrow { @apply text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground; }
 
-  /* Marketing design system (landing and public pages): light, editorial, data-first */
-  .mk-page { background: #FFFFFF; color: #0B0B0C; }
+  /* ── Marketing system (landing and public pages): warm paper, editorial serif, quiet UI ── */
+  .mk-page { background: #FAF8F4; color: #1A2A31; }
   .mk-container { @apply max-w-[1200px] mx-auto px-5 md:px-8; }
-  .mk-h1 { @apply text-[44px] leading-[1.0] sm:text-[60px] lg:text-[76px] font-semibold tracking-[-0.045em]; }
-  .mk-h2 { @apply text-[34px] leading-[1.05] md:text-[52px] font-semibold tracking-[-0.04em]; }
-  .mk-h3 { @apply text-[22px] md:text-[26px] leading-tight font-semibold tracking-[-0.025em]; }
-  .mk-lead { @apply text-[17px] md:text-[18px] leading-relaxed; color: #55595F; }
-  .mk-muted { color: #6B6F76; }
-  .mk-card { @apply rounded-2xl border bg-white; border-color: #E9E9EC; }
-  .mk-soft { background: #F5F5F6; }
-  .mk-pill { @apply inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] font-medium bg-white; border-color: #E9E9EC; color: #2A2C30; }
-  .mk-btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-full px-6 h-12 text-[15px] font-medium transition-colors; background: #0B0B0C; color: #FFFFFF; }
-  .mk-btn-primary:hover { background: #2A2C30; }
-  .mk-btn-secondary { @apply inline-flex items-center justify-center gap-2 rounded-full px-6 h-12 text-[15px] font-medium transition-colors; background: #F1F1F3; color: #0B0B0C; }
-  .mk-btn-secondary:hover { background: #E6E6E9; }
+  .mk-h1 { @apply font-display font-normal text-[40px] leading-[1.02] sm:text-[60px] lg:text-[76px] tracking-[-0.008em]; color: #1A2A31; text-wrap: balance; }
+  .mk-h2 { @apply font-display font-normal text-[36px] leading-[1.05] md:text-[54px] tracking-[-0.006em]; color: #1A2A31; text-wrap: balance; }
+  .mk-h3 { @apply font-display font-normal text-[26px] md:text-[30px] leading-tight; color: #1A2A31; }
+  .mk-h1 .mk-soft-line, .mk-h2 .mk-soft-line, .mk-h3 .mk-soft-line { color: #5E7480; font-style: italic; }
+  .mk-lead { @apply text-[16px] md:text-[17px] leading-relaxed; color: #4A5A61; }
+  .mk-muted { color: #5B6A70; }
+  .mk-faint { color: #5F6D72; }
+  .mk-card { @apply rounded-2xl border bg-white; border-color: #E6E1D7; box-shadow: var(--shadow-soft); }
+  .mk-flat { @apply rounded-2xl border bg-white; border-color: #E6E1D7; }
+  .mk-soft { background: #F3F0E9; }
+  .mk-pill { @apply inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] font-medium bg-white/80 backdrop-blur; border-color: #E6E1D7; color: #2B3A40; }
+  .mk-btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 h-11 text-[15px] font-medium transition-colors; background: #214F5E; color: #FAF8F4; box-shadow: 0 1px 2px rgba(26,42,49,0.12), 0 8px 20px -10px rgba(33,79,94,0.6); }
+  .mk-btn-primary:hover { background: #1A4351; }
+  .mk-btn-secondary { @apply inline-flex items-center justify-center gap-2 rounded-xl border px-5 h-11 text-[15px] font-medium transition-colors; background: #FFFFFF; border-color: #E0DBD0; color: #1A2A31; }
+  .mk-btn-secondary:hover { background: #F6F3EC; }
   .mk-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
   .mk-num { font-variant-numeric: tabular-nums; }
-  .mk-divider { border-color: #ECECEE; }
+  .mk-divider { border-color: #E6E1D7; }
+  .mk-eyebrow { @apply text-[12px] font-medium uppercase tracking-[0.14em]; color: #5B6A70; }
+  /* Painted backdrop frame (hero, feature scenes) */
+  .mk-scene { @apply relative overflow-hidden rounded-[22px]; background: #EFE7DA; }
+  .mk-scene > img.mk-scene-img { @apply absolute inset-0 h-full w-full object-cover; }
 }
