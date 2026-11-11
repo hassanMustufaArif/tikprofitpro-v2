@@ -83,6 +83,11 @@ async function toApiError(res: Response): Promise<ApiError> {
     const text = detailText && !/rate limit exceeded/i.test(detailText) ? detailText : API_MESSAGES.rateLimited;
     return new ApiError(text, { status, kind: "rate_limit", detail, code });
   }
+  // 402 = payment required. no_credits keeps its own handling; any other 402 (e.g. "The listing
+  // generator is a Pro feature") is a plan gate, so callers show an upgrade link.
+  if (status === 402 && code !== "no_credits") {
+    return new ApiError(detailText ?? API_MESSAGES.upgrade, { status, kind: "upgrade", detail, code });
+  }
   if (status >= 500) return new ApiError(API_MESSAGES.server, { status, kind: "server", detail, code });
   return new ApiError(detailText ?? API_MESSAGES.generic, { status, kind: "other", detail, code });
 }

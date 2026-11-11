@@ -16,7 +16,7 @@ export default function HeroProductMock() {
     <div className="mk-card overflow-hidden text-left shadow-[0_1px_2px_rgba(16,24,40,0.04),0_24px_48px_-24px_rgba(16,24,40,0.12)]">
       <div className="flex flex-wrap items-center gap-2 border-b mk-divider px-4 py-3">
         <div className="flex h-9 flex-1 min-w-[200px] items-center gap-2 rounded-lg border mk-divider px-3 text-[13px] mk-muted bg-[#FAFAFA]">
-          <Search className="h-4 w-4" /> Search 700+ products
+          <Search className="h-4 w-4" /> Search trending products
         </div>
         {["Emerging", "Last 7 days", "Margin > 35%"].map((f, i) => (
           <span key={f} className={`h-9 inline-flex items-center rounded-lg border px-3 text-[13px] ${i === 0 ? "border-[#0B0B0C] bg-[#0B0B0C] text-white" : "mk-divider text-[#2A2C30]"}`}>{f}</span>

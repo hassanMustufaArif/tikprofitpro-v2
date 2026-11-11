@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { api } from "@/lib/api";
 import VideoModal from "@/components/VideoModal";
+import { loginReturnUrl } from "@/lib/authFlow";
 
 function MobileMenuButton() {
   const { toggleSidebar, isMobile } = useSidebar();
@@ -35,8 +36,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   });
   const creditsData = creditsResp?.credits ?? null;
 
-  const plan = creditsData?.plan;
   const showCredits = !!creditsData;
+  // /credits reports email_confirmed:false for accounts that haven't clicked the confirmation link yet.
+  const needsConfirm = !!user && creditsResp?.email_confirmed === false;
+  const [resend, setResend] = useState<"idle" | "sending" | "sent">("idle");
+  const resendConfirm = async () => {
+    if (!user?.email) return;
+    setResend("sending");
+    await supabase.auth.resend({ type: "signup", email: user.email, options: { emailRedirectTo: loginReturnUrl(null) } });
+    setResend("sent"); // same message whatever happened
+  };
 
   return (
     <SidebarProvider>
@@ -69,6 +78,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </button>
             </div>
           </header>
+          {needsConfirm && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 border-b border-amber-200 bg-amber-50 px-4 md:px-8 py-2 text-[13px] text-amber-900" role="status">
+              <span>Confirm your email to use your free sourcing credits. Open the link we sent to <span className="font-medium break-all">{user?.email}</span>.</span>
+              {resend === "sent" ? (
+                <span className="text-amber-800">A new link is on its way.</span>
+              ) : (
+                <button onClick={resendConfirm} disabled={resend === "sending"} className="font-medium underline underline-offset-2 disabled:opacity-60 sm:ml-auto">
+                  {resend === "sending" ? "Sending…" : "Resend link"}
+                </button>
+              )}
+            </div>
+          )}
           <main className="flex-1 px-4 py-5 md:px-8 md:py-7 overflow-auto bg-background">
             {children}
           </main>

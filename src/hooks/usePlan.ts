@@ -11,8 +11,8 @@ export type Plan = "free" | "pro" | "ultimate";
  * NOTE: this is display only. Real access control must be enforced server-side.
  */
 export function usePlan() {
-  const { user } = useAuth();
-  const { data, isLoading } = useQuery({
+  const { user, loading: authLoading } = useAuth();
+  const { data, isPending } = useQuery({
     queryKey: ["user-plan", user?.email],
     queryFn: async () => {
       if (!user?.email) return null;
@@ -28,5 +28,8 @@ export function usePlan() {
   const raw = (data?.plan ?? "free").toString().toLowerCase();
   const plan: Plan = raw === "pro" || raw === "ultimate" ? (raw as Plan) : "free";
   const label = plan === "free" ? "Free" : plan === "pro" ? "Pro" : "Ultimate";
+  // Loading until the session is known and, when signed in, the plan has arrived, so callers
+  // can show a skeleton instead of flashing the Free plan before Pro.
+  const isLoading = authLoading || (!!user?.email && isPending);
   return { plan, label, isFree: plan === "free", isPaid: plan !== "free", isLoading };
 }

@@ -44,7 +44,7 @@ const activeCls = "bg-sidebar-accent text-foreground font-medium";
 export function AppSidebar() {
   const { checkout, loading } = useCheckout();
   const { user } = useAuth();
-  const { isPaid, label } = usePlan();
+  const { isPaid, label, isLoading: planLoading } = usePlan();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -99,7 +99,10 @@ export function AppSidebar() {
           </SidebarMenu>
         )}
 
-        {user && !isPaid && (
+        {user && planLoading && (
+          <div className="mx-2.5 h-4 w-24 rounded bg-muted animate-pulse group-data-[collapsible=icon]:hidden" aria-hidden />
+        )}
+        {user && !planLoading && !isPaid && (
           <div className="rounded-lg border border-border p-3 group-data-[collapsible=icon]:hidden">
             <div className="text-[12px] text-muted-foreground">Current plan</div>
             <div className="text-[13px] font-medium text-foreground">{label} · 10 products</div>
@@ -108,7 +111,7 @@ export function AppSidebar() {
             </button>
           </div>
         )}
-        {user && isPaid && (
+        {user && !planLoading && isPaid && (
           <div className="px-2.5 text-[12px] text-muted-foreground group-data-[collapsible=icon]:hidden">
             {label} plan
           </div>

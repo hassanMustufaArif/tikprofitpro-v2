@@ -36,7 +36,7 @@ const Terms = () => (
         <h2 className="text-lg font-bold text-white pt-2">9. Changes to Terms</h2>
         <p>We reserve the right to update these terms at any time. Continued use of the Service after changes constitutes acceptance of the new terms.</p>
 
-        <p className="pt-4">For questions, contact <span style={{ color: "#00ff85" }}>support@tikprofitpro.io</span>.</p>
+        <p className="pt-4">For questions, contact <a href="mailto:support@tikprofitpro.shop" style={{ color: "#00ff85" }} className="underline underline-offset-2">support@tikprofitpro.shop</a>.</p>
       </div>
     </section>
     <Footer />
