@@ -7,17 +7,23 @@ import { safeUrl, safeImageSrc, isHttpUrl } from "@/lib/safeUrl";
 
 /**
  * Supplier review (admins only; the API checks ADMIN_EMAILS).
- * - To review: near-miss photo matches (default 60-79%). Same product with a different bottle,
- *   label or angle lands here. Approve -> users see it and it's charged like a normal match.
- * - No match: sourcing found nothing verified; check the near-misses or paste a link yourself.
- * - Live: what users see now. Hide a wrong auto-match; re-sourcing keeps it hidden.
+ * Matching-off mode (SOURCING_MATCHING=off, the backend default): sourcing saves the top 3
+ * Alibaba/AliExpress search results as match_method "auto" with no score, and users see them
+ * straight away. The "To review" queue only fills when photo matching is switched on.
+ * - Live (default): what users see now, including unscored "auto" rows. Hide a wrong one;
+ *   re-sourcing keeps it hidden.
+ * - No match: the search found nothing; paste a link yourself.
+ * - To review: near-miss photo matches (60-79%), photo-matching mode only.
  */
 
 const VIEWS = [
-  { id: "pending", label: "To review" },
-  { id: "no_match", label: "No match" },
   { id: "live", label: "Live" },
+  { id: "no_match", label: "No match" },
+  { id: "pending", label: "To review (photo matching only)" },
 ] as const;
+
+/** Users see a supplier when the API marks it visible, or (matching off) when it's an unhidden "auto" search result. */
+const isLive = (s: any) => !s.hidden && (s.visible || s.match_method === "auto");
 
 const pct = (v: any) => (v == null ? "—" : `${Math.round(Number(v) * 100)}%`);
 const usd = (v: any) => (v == null || v === "" ? "—" : `$${Number(v).toFixed(2)}`);
@@ -38,7 +44,7 @@ const SupplierCard = ({ s, children }: { s: any; children?: React.ReactNode }) =
       : <div className="h-24 w-24 rounded bg-muted shrink-0" />}
     <div className="min-w-0 flex-1 space-y-1">
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-sm font-semibold">{pct(s.similarity)} match</span>
+        <span className="text-sm font-semibold">{s.similarity == null ? "Search result (no score)" : `${pct(s.similarity)} match`}</span>
         <Badge tone="blue">{s.platform}</Badge>
         {s.match_method && <Badge>{s.match_method}</Badge>}
       </div>
@@ -114,7 +120,7 @@ const AddSupplierForm = ({ productId, onDone }: { productId: string; onDone: () 
 
 const AdminReview = () => {
   const qc = useQueryClient();
-  const [view, setView] = useState<(typeof VIEWS)[number]["id"]>("pending");
+  const [view, setView] = useState<(typeof VIEWS)[number]["id"]>("live");
   const [platform, setPlatform] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -144,8 +150,8 @@ const AdminReview = () => {
 
   const items: any[] = queue.data?.items ?? [];
   const d = detail.data;
-  const live = (d?.suppliers ?? []).filter((s: any) => s.visible);
-  const hidden = (d?.suppliers ?? []).filter((s: any) => !s.visible);
+  const live = (d?.suppliers ?? []).filter(isLive);
+  const hidden = (d?.suppliers ?? []).filter((s: any) => !isLive(s));
   const pending = (d?.candidates ?? []).filter((c: any) => c.status === "pending");
   const rejected = (d?.candidates ?? []).filter((c: any) => c.status === "rejected");
 
@@ -157,7 +163,9 @@ const AdminReview = () => {
           <Link to="/admin/upload" className="text-[13px] underline">Weekly upload</Link>
         </div>
         <p className="text-muted-foreground mt-1 text-sm">
-          Approve same-product matches the photo check scored below {pct(d?.min_similarity ?? 0.8)}, hide wrong ones, or add a link yourself.
+          With photo matching off (the default), users see the top 3 Alibaba/AliExpress search results for each product, unscored.
+          Check the Live list and hide any that are the wrong product, or add a link yourself. If photo matching is on,
+          matches scored below {pct(d?.min_similarity ?? 0.8)} wait under "To review".
         </p>
       </div>
 
@@ -218,7 +226,7 @@ const AdminReview = () => {
 
               <section className="space-y-2">
                 <h2 className="text-sm font-semibold">To review ({pending.length})</h2>
-                {pending.length === 0 && <div className="text-[13px] text-muted-foreground">No near-misses waiting.</div>}
+                {pending.length === 0 && <div className="text-[13px] text-muted-foreground">No near-misses waiting. (This only fills when photo matching is on.)</div>}
                 {pending.map((c: any) => (
                   <SupplierCard key={c.id} s={c}>
                     <Btn tone="approve" busy={busyId === `a${c.id}`} onClick={() => act(`a${c.id}`, () => api.adminApprove(c.id))}><Check className="h-3 w-3" /> Same product</Btn>
@@ -232,7 +240,7 @@ const AdminReview = () => {
                 {live.length === 0 && <div className="text-[13px] text-muted-foreground">Users see no suppliers for this product yet.</div>}
                 {live.map((s: any) => (
                   <SupplierCard key={s.id} s={s}>
-                    {s.match_method === "manual" ? <Badge tone="green">approved by {s.reviewed_by || "admin"}</Badge> : <Badge tone="green">auto-verified</Badge>}
+                    {s.match_method === "manual" ? <Badge tone="green">approved by {s.reviewed_by || "admin"}</Badge> : <Badge tone="green">{s.match_method === "auto" ? "auto (search result)" : "auto"}</Badge>}
                     <Btn busy={busyId === `h${s.id}`} onClick={() => act(`h${s.id}`, () => api.adminSetHidden(s.id, true))}><EyeOff className="h-3 w-3" /> Hide</Btn>
                   </SupplierCard>
                 ))}

@@ -15,6 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DEFAULT_REFERRAL_PCT } from "@/lib/fees";
+import { displayPrice } from "@/lib/productFormat";
 
 const categories = [
   "Beauty & Personal Care",
@@ -47,7 +49,7 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
 
   const [title, setTitle] = useState(product.product_name ?? "");
   const [price, setPrice] = useState(
-    String(product.tiktok_price ?? "").replace(/[^0-9.]/g, "")
+    () => { const v = displayPrice(product); return v == null ? "" : String(v); }
   );
   const [comparePrice, setComparePrice] = useState("");
   const [category, setCategory] = useState(matchedCategory ?? "");
@@ -55,7 +57,7 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
   const [description, setDescription] = useState("");
   const [sellingPoints, setSellingPoints] = useState("");
   const [images, setImages] = useState<string[]>(() => {
-    const first = safeImageSrc(product.thumbnail_url);
+    const first = safeImageSrc(product.image_storage_url || product.thumbnail_url);
     return first ? [first] : [];
   });
   const [copied, setCopied] = useState(false);
@@ -92,7 +94,8 @@ const ListProductModal = ({ product, onClose }: ListProductModalProps) => {
 
   const [supplierCost, setSupplierCost] = useState("");
   const [shippingCost, setShippingCost] = useState("");
-  const [referralFee, setReferralFee] = useState("");
+  // Default to the standard US TikTok Shop referral fee so margins aren't overstated.
+  const [referralFee, setReferralFee] = useState(String(DEFAULT_REFERRAL_PCT));
 
   const bullets = useMemo(
     () => sellingPoints.split("\n").filter((l) => l.trim()),

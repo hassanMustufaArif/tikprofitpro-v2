@@ -3,6 +3,9 @@ import { isCheckoutPlan, type CheckoutPlan } from "@/lib/api";
 
 export const MIN_PASSWORD_LENGTH = 8;
 
+/** Where password-reset emails send the user. Must be in Supabase Auth > URL configuration > Redirect URLs. */
+export const RESET_REDIRECT_URL = "https://tikprofitpro.shop/reset";
+
 export const PLAN_LABELS: Record<CheckoutPlan, string> = { pro: "Pro", ultimate: "Ultimate" };
 
 const PENDING_KEY = "pendingCheckoutPlan";

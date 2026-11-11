@@ -7,10 +7,11 @@ import { safeHref } from "@/lib/safeUrl";
 
 /**
  * Weekly upload (admins only; the API checks ADMIN_EMAILS).
- * 1) Drop the Kalodata CSV exports (products, creators, shops). The type is read from each file's columns.
+ * 1) Drop the Kalodata CSV exports or the FastMoss product .xlsx. The type is read from each file's columns.
  * 2) Check: previews the counts, writes nothing.
  * 3) Import: writes products/creators/shops, copies photos, retires products missing from this export.
- * 4) Find suppliers: runs photo matching on GitHub Actions (too heavy for the web server).
+ * 4) Find suppliers: runs the supplier search on GitHub Actions. With photo matching off (SOURCING_MATCHING=off,
+ *    the backend default) the top 3 Alibaba/AliExpress search results go live as "auto" rows, unscored.
  */
 
 const kb = (n: number) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
@@ -118,7 +119,7 @@ const AdminUpload = () => {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-xl md:text-2xl font-bold tracking-tight">Weekly upload</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Upload this week's Kalodata exports, then find suppliers. Takes a few minutes of your time each week.</p>
+          <p className="text-muted-foreground mt-1 text-sm">Upload this week's FastMoss product export (or Kalodata CSVs), then find suppliers. Takes a few minutes of your time each week.</p>
         </div>
         <Link to="/admin/review" className="text-[13px] underline">Supplier review</Link>
       </div>
@@ -194,7 +195,10 @@ const AdminUpload = () => {
 
       <Step n={3} title="Find suppliers">
         <p className="text-[13px] text-muted-foreground">
-          Runs the photo match on GitHub's servers. New matches of 80% or more go live; 60–79% go to <Link to="/admin/review" className="underline">Supplier review</Link>.
+          Runs the supplier search on GitHub's servers. With photo matching off (the default), the top 3 Alibaba/AliExpress
+          search results for each product go live straight away, with no match score. Spot-check them in{" "}
+          <Link to="/admin/review" className="underline">Supplier review</Link> and hide any that are the wrong product.
+          (Only if photo matching is switched on: 80%+ go live and 60–79% wait in the review queue.)
         </p>
         <div className="flex flex-wrap items-end gap-3 text-[13px]">
           <label className="space-y-1">

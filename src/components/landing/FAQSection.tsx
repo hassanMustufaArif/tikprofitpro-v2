@@ -9,11 +9,11 @@ import {
 const faqs = [
   {
     q: "What is TikProfitPro?",
-    a: "TikProfitPro is a TikTok Shop intelligence tool that tracks 700+ trending products weekly, scores their virality before they peak, matches them with Alibaba suppliers, and calculates your exact profit margin after TikTok fees.",
+    a: "TikProfitPro is a TikTok Shop research tool that tracks trending products, scores their virality, searches Alibaba and AliExpress for similar supplier listings, and calculates your profit margin after TikTok fees.",
   },
   {
     q: "How do I find Alibaba suppliers for TikTok Shop products?",
-    a: "Click Source on any trending product and TikProfitPro searches Alibaba, AliExpress and Amazon for matching listings, then estimates your margin after TikTok's referral fee and creator commission. Always order a sample and confirm specs with the supplier before buying in bulk.",
+    a: "Click Suppliers on any trending product and TikProfitPro shows the top 3 Alibaba or AliExpress search results for it (Amazon is in beta), then estimates your margin after TikTok's referral fee and creator commission. Check each listing, order a sample and confirm specs with the supplier before buying in bulk.",
   },
   {
     q: "How is TikTok Shop profit margin calculated?",
@@ -21,7 +21,7 @@ const faqs = [
   },
   {
     q: "How much does TikProfitPro cost?",
-    a: "TikProfitPro starts at $39/month with a free plan available. The paid plan includes full access to 700+ trending products, virality scores, supplier matching, and profit calculator.",
+    a: "TikProfitPro has a free plan (top 10 products and 5 sourcing credits a month). Pro is $39/month and includes the full list of trending products, product search, 50 sourcing credits a month and the profit calculator.",
   },
 ];
 

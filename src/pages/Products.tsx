@@ -11,6 +11,8 @@ import { api, isApiError, API_MESSAGES } from "@/lib/api";
 import { usePlan } from "@/hooks/usePlan";
 import { calcProfit, DEFAULT_CREATOR_PCT, DEFAULT_REFERRAL_PCT } from "@/lib/fees";
 import { safeUrl, safeImageSrc } from "@/lib/safeUrl";
+import { displayPrice, isEstimated7d, latestDataDate, rankSuppliers } from "@/lib/productFormat";
+import { useAuth } from "@/contexts/AuthContext";
 
 /* ─────────────────────────── formatting ─────────────────────────── */
 
@@ -54,21 +56,17 @@ const adSpendValue = (p: any): number | null => {
   return v;
 };
 
-const priceLooksWrong = (p: any): boolean => {
-  const price = Number(p?.tiktok_price);
-  if (!Number.isFinite(price) || price <= 0) return true;
-  const gmv = Number(p?.gmv_7d), units = Number(p?.units_sold_7d);
-  if (gmv > 0 && units > 0) {
-    const avg = gmv / units;
-    if (price > avg * 3 || price < avg / 3) return true;
-  }
-  return price >= 1000;
+// Price: a cents-looking value is read as dollars when the sales data agrees; anything else shows "—".
+const Price = ({ p }: { p: any }) => {
+  const v = displayPrice(p);
+  return v == null
+    ? <span className="text-muted-foreground" title="Price not available for this product">—</span>
+    : <>${v.toFixed(2)}</>;
 };
 
-const Price = ({ p }: { p: any }) =>
-  priceLooksWrong(p)
-    ? <span className="whitespace-nowrap text-muted-foreground underline decoration-dotted underline-offset-2" title="This price doesn't match the sales data and is being reviewed">Checking</span>
-    : <>${Number(p.tiktok_price).toFixed(2)}</>;
+// Marks 7-day figures that were extrapolated from a shorter window (FastMoss exports are 1 day).
+const Est = ({ p }: { p: any }) =>
+  isEstimated7d(p) ? <span className="ml-1 text-[10px] font-normal text-muted-foreground" title="Estimated: scaled up from a shorter sales window">est.</span> : null;
 
 /* ─────────────────────────── small pieces ─────────────────────────── */
 
@@ -199,7 +197,7 @@ const STAGES = ["all", "emerging", "rising", "peaking", "saturated"] as const;
 const PLATFORMS = [
   { id: "alibaba",    label: "Alibaba",    note: "Factories, bulk" },
   { id: "aliexpress", label: "AliExpress", note: "Small orders" },
-  { id: "amazon",     label: "Amazon",     note: "US retail" },
+  { id: "amazon",     label: "Amazon (beta)", note: "US retail" },
 ];
 
 const ITEMS_PER_PAGE = 25;
@@ -230,33 +228,54 @@ const Products = () => {
   const [creatorSearch, setCreatorSearch] = useState("");
   const [creatorType, setCreatorType] = useState("all");
 
-  const { data: creditsData } = useQuery({ queryKey: ["credits"], queryFn: () => api.getCredits(), retry: false });
+  const { user, loading: authLoading } = useAuth();
+  const { isFree, isLoading: planLoading } = usePlan();
+  const { data: creditsData } = useQuery({ queryKey: ["credits"], queryFn: () => api.getCredits(), retry: false, enabled: !!user });
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(t);
   }, [search]);
 
-  const { data: products = [], isLoading, error } = useQuery({
-    queryKey: ["products", debouncedSearch],
+  // Free search is ignored by the server (it returns the same top 10), so Free never sends a query.
+  const activeSearch = isFree ? "" : debouncedSearch.trim().length >= 2 ? debouncedSearch.trim() : "";
+
+  // Wait for the auth session before the first fetch: otherwise the first request goes out
+  // signed-out (free top 10) and Pro users see a spinner / "0 products" until a refetch.
+  const { data: products = [], isLoading: productsLoading, error } = useQuery({
+    queryKey: ["products-list", user?.id ?? "anon", activeSearch],
+    enabled: !authLoading,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    retry: (count, err) => count < 1 && !(isApiError(err) && ["auth", "upgrade", "forbidden", "rate_limit"].includes(err.kind)),
     queryFn: async () => {
-      if (debouncedSearch) return api.searchProducts(debouncedSearch);
-      // The API returns at most 100 per call (10 for Free). Page through so Pro sees the full list.
-      const all: any[] = [];
-      for (let offset = 0; offset < 2000; offset += 100) {
+      if (activeSearch) return api.searchProducts(activeSearch);
+      // The API returns at most 100 per call (10 for Free). First page, then the rest a few at a time.
+      const page = async (offset: number) => {
         const res: any = await api.getProducts({ limit: "100", offset: String(offset) });
-        const batch: any[] = Array.isArray(res) ? res : res?.products ?? [];
-        all.push(...batch);
-        if (batch.length < 100 || res?.plan === "free") break;
+        return { res, batch: (Array.isArray(res) ? res : res?.products ?? []) as any[] };
+      };
+      const first = await page(0);
+      const all: any[] = [...first.batch];
+      if (first.batch.length < 100 || first.res?.plan === "free") return all;
+      for (let offset = 100; offset < 2000; offset += 400) {
+        const pages = await Promise.all([0, 100, 200, 300].map((d) => offset + d).filter((o) => o < 2000).map(page));
+        let done = false;
+        for (const p of pages) {
+          if (done) break;
+          all.push(...p.batch);
+          if (p.batch.length < 100) done = true;
+        }
+        if (done) break;
       }
       return all;
     },
   });
+  const isLoading = authLoading || productsLoading;
 
   useEffect(() => { setCurrentPage(1); }, [debouncedSearch, added, stage, sort, dir]);
 
   const creditInfo = creditsData?.credits ?? creditsData ?? {};
-  const { isFree } = usePlan();
   const items: any[] = Array.isArray(products) ? products : (products as any)?.products ?? [];
 
   const onSort = (k: SortKey) => {
@@ -274,7 +293,7 @@ const Products = () => {
         case "units": return Number(p.units_sold_7d) || 0;
         case "views": return Number(p.video_views) || 0;
         case "creators": return Number(p.creator_count) || 0;
-        case "price": return Number(p.tiktok_price) || 0;
+        case "price": return displayPrice(p) ?? 0;
         case "newest": return new Date(p.created_at || p.first_seen_at || 0).getTime();
         default: return Number(p.virality_score) || 0;
       }
@@ -282,13 +301,11 @@ const Products = () => {
     return [...r].sort((a, b) => (dir === "desc" ? val(b) - val(a) : val(a) - val(b)));
   }, [items, added, stage, sort, dir]);
 
-  const visible = isFree ? rows.slice(0, 10) : rows;
+  const visible = isFree && !planLoading ? rows.slice(0, 10) : rows;
   const totalPages = Math.max(1, Math.ceil(visible.length / ITEMS_PER_PAGE));
   const pageRows = visible.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   const totalGmv = visible.reduce((s, p) => s + (Number(p.gmv_7d) || 0), 0);
-  const asOf = items[0]?.data_end_date
-    ? new Date(items[0].data_end_date).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
-    : null;
+  const asOf = latestDataDate(items);
 
   /* ── supplier lookup (unchanged behaviour) ── */
   const supplierReq = useRef(0);
@@ -335,19 +352,8 @@ const Products = () => {
         queryClient.invalidateQueries({ queryKey: ["credits"] });
       } else {
         const results = data?.suppliers ?? data?.results ?? (Array.isArray(data) ? data : []);
-        const seen = new Set<string>();
-        // Server order is the ranking (photo-search relevance). Only re-sort when the server sent match scores.
-        const scored = results.some((r: any) => r.similarity != null);
-        const ranked = (scored
-          ? [...results].sort((a: any, b: any) => (Number(b.similarity) || 0) - (Number(a.similarity) || 0) || (Number(a.unit_cost_min) || 0) - (Number(b.unit_cost_min) || 0))
-          : [...results])
-          .filter((s: any) => {
-            const k = s.external_product_id ? `id:${s.external_product_id}` : `${(s.supplier_name ?? "").toLowerCase()}|${Number(s.unit_cost_min).toFixed(2)}`;
-            if (seen.has(k)) return false;
-            seen.add(k);
-            return true;
-          });
-        setSupplierResults(ranked.slice(0, 3));
+        // Server order is the ranking (search relevance); re-sort only when the server sent match scores. Duplicates removed.
+        setSupplierResults(rankSuppliers(results).slice(0, 3));
         queryClient.invalidateQueries({ queryKey: ["user-credits-nav"] });
         queryClient.invalidateQueries({ queryKey: ["credits"] });
       }
@@ -416,11 +422,20 @@ const Products = () => {
         <div className="app-panel overflow-hidden">
           {/* Filter bar */}
           <div className="flex flex-col lg:flex-row lg:items-center gap-2 border-b border-border p-3">
-            <div className="relative w-full lg:w-72">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products or categories"
-                className="h-8 w-full rounded-md border border-border bg-card pl-8 pr-3 text-[13px] outline-none placeholder:text-muted-foreground focus:border-foreground/40" />
-            </div>
+            {planLoading ? (
+              <div className="h-8 w-full lg:w-72 rounded-md bg-muted animate-pulse" aria-hidden />
+            ) : isFree ? (
+              <Link to="/pricing" className="relative flex h-8 w-full lg:w-72 items-center rounded-md border border-dashed border-border bg-muted/40 pl-8 pr-3 text-[13px] text-muted-foreground hover:text-foreground"
+                title="Search is on Pro. The Free plan shows the top 10 products.">
+                <Lock className="absolute left-2.5 h-3.5 w-3.5" strokeWidth={1.75} /> Upgrade to search
+              </Link>
+            ) : (
+              <div className="relative w-full lg:w-72">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products or categories"
+                  className="h-8 w-full rounded-md border border-border bg-card pl-8 pr-3 text-[13px] outline-none placeholder:text-muted-foreground focus:border-foreground/40" />
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-2">
               <label className="app-chip relative pr-7">
                 <span className="text-muted-foreground">Added</span>
@@ -441,7 +456,7 @@ const Products = () => {
             </div>
             <div className="lg:ml-auto text-[12px] text-muted-foreground tabular-nums whitespace-nowrap">
               <span className="text-foreground font-medium">{visible.length}</span> products
-              {totalGmv > 0 && <> · <span className="text-foreground font-medium">{fmtUsd(totalGmv)}</span> revenue, 7 days</>}
+              {totalGmv > 0 && <> · <span className="text-foreground font-medium">{fmtUsd(totalGmv)}</span> revenue, 7 days{visible.some(isEstimated7d) ? " (est.)" : ""}</>}
             </div>
           </div>
 
@@ -492,8 +507,8 @@ const Products = () => {
                           </div>
                         </td>
                         <td className="app-td app-num"><Price p={p} /></td>
-                        <td className="app-td app-num font-medium text-foreground">{fmtUsd(p.gmv_7d)}<Delta v={p.gmv_growth_pct} /></td>
-                        <td className="app-td app-num">{fmtNum(p.units_sold_7d)}</td>
+                        <td className="app-td app-num font-medium text-foreground">{fmtUsd(p.gmv_7d)}<Est p={p} /><Delta v={p.gmv_growth_pct} /></td>
+                        <td className="app-td app-num">{fmtNum(p.units_sold_7d)}<Est p={p} /></td>
                         <td className="app-td app-num hidden xl:table-cell">{fmtNum(p.video_views)}</td>
                         <td className="app-td app-num hidden lg:table-cell">{fmtNum(p.creator_count)}</td>
                         <td className="app-td app-num"><Score v={p.virality_score} /></td>
@@ -521,7 +536,7 @@ const Products = () => {
                       <div className="line-clamp-2 text-[13px] font-medium text-foreground">{p.product_name}</div>
                       <div className="mt-1.5 flex items-center gap-3 text-[12px] tabular-nums text-muted-foreground">
                         <span className="text-foreground"><Price p={p} /></span>
-                        <span>{fmtUsd(p.gmv_7d)} / 7d</span>
+                        <span>{fmtUsd(p.gmv_7d)} / 7d{isEstimated7d(p) ? " est." : ""}</span>
                         <StagePill phase={p.trend_phase} />
                       </div>
                     </div>
@@ -530,7 +545,7 @@ const Products = () => {
                 {pageRows.length === 0 && <Empty>No products found.</Empty>}
               </div>
 
-              {isFree && rows.length > 10 && <UpgradeRow text={`Showing 10 of ${Math.min(rows.length, 100)} products on the Free plan.`} />}
+              {isFree && !planLoading && <UpgradeRow text="The Free plan shows the top 10 products. Pro unlocks the full list and search." />}
 
               {totalPages > 1 && (
                 <div className="flex items-center justify-between border-t border-border px-4 py-2.5">
@@ -690,8 +705,8 @@ const Products = () => {
             )}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-px overflow-hidden rounded-lg border border-border bg-border [&>*]:bg-card">
               <Stat label="Price" value={<Price p={selectedProduct} />} />
-              <Stat label="Revenue, 7 days" value={fmtUsd(selectedProduct.gmv_7d)} sub={<Delta v={selectedProduct.gmv_growth_pct} />} />
-              <Stat label="Units, 7 days" value={fmtNum(selectedProduct.units_sold_7d)} />
+              <Stat label={isEstimated7d(selectedProduct) ? "Revenue, 7 days (est.)" : "Revenue, 7 days"} value={fmtUsd(selectedProduct.gmv_7d)} sub={<Delta v={selectedProduct.gmv_growth_pct} />} />
+              <Stat label={isEstimated7d(selectedProduct) ? "Units, 7 days (est.)" : "Units, 7 days"} value={fmtNum(selectedProduct.units_sold_7d)} />
               <Stat label="Video views" value={fmtNum(selectedProduct.video_views)} />
               <Stat label="Creators" value={fmtNum(selectedProduct.creator_count)} />
               <Stat label="Score" value={`${selectedProduct.virality_score ?? 0}/100`} />
@@ -739,12 +754,12 @@ const Products = () => {
               )}
             </div>
             <p className="text-[12px] text-muted-foreground">
-              Matched by product photo. A credit is only used when suppliers are found, and reopening a product you've already checked is free.
+              Top 3 results from Alibaba/AliExpress photo search. Check the listing before ordering. A credit is only used when suppliers are found, and reopening a product you've already checked is free.
             </p>
 
             {!supplierPlatform && !supplierLoading && (
               <div className="rounded-lg border border-dashed border-border py-10 text-center text-[13px] text-muted-foreground">
-                Choose a marketplace to see matching suppliers.
+                Choose a marketplace to see supplier results.{" "}<span className="block mt-1 text-[12px]">Amazon search is in beta.</span>
               </div>
             )}
 
@@ -800,8 +815,9 @@ const Products = () => {
                   <tbody>
                     {supplierResults.map((s: any, i: number) => {
                       const unit = Number(s.unit_cost_min);
-                      const est = Number.isFinite(unit) && unit > 0 && !priceLooksWrong(supplierProduct)
-                        ? calcProfit({ sellingPrice: Number(supplierProduct.tiktok_price), productCost: unit, referralPct: DEFAULT_REFERRAL_PCT, creatorPct: DEFAULT_CREATOR_PCT })
+                      const sell = displayPrice(supplierProduct);
+                      const est = Number.isFinite(unit) && unit > 0 && sell != null
+                        ? calcProfit({ sellingPrice: sell, productCost: unit, referralPct: DEFAULT_REFERRAL_PCT, creatorPct: DEFAULT_CREATOR_PCT })
                         : null;
                       return (
                         <tr key={i} className="border-b border-border last:border-0 align-top">

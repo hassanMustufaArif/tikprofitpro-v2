@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, ArrowUpRight, Check, Star, TrendingUp, Factory, PlayCircle } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
@@ -9,6 +9,8 @@ import HeroProductMock from "@/components/landing/HeroProductMock";
 import StageBadge, { STAGE_COLORS } from "@/components/landing/StageBadge";
 import Sparkline from "@/components/landing/Sparkline";
 import { useCheckout } from "@/hooks/useCheckout";
+import { useAuth } from "@/contexts/AuthContext";
+import { savePendingPlan } from "@/lib/authFlow";
 
 const fade = {
   hidden: { opacity: 0, y: 14 },
@@ -25,9 +27,9 @@ const Reveal = ({ children, className = "" }: { children: React.ReactNode; class
 
 const PLANS = [
   { name: "Free", price: "$0", period: "forever", cta: "Start free", to: "/pricing#free",
-    features: ["Top 10 trending products", "Basic virality scores", "Dashboard overview", "Profit calculator"] },
+    features: ["Top 10 trending products", "Virality scores", "5 sourcing credits a month", "Dashboard overview", "Profit calculator"] },
   { name: "Pro", price: "$39", period: "/month", cta: "Start Pro", to: "/pricing", featured: true,
-    features: ["All 700+ trending products", "Advanced virality scores", "50 sourcing credits a month", "Alibaba, AliExpress and Amazon matching", "Full product stats", "Weekly updated rankings"] },
+    features: ["Full list of trending products", "Product search", "50 sourcing credits a month", "Alibaba and AliExpress supplier search (Amazon in beta)", "Full product stats", "Rankings refreshed regularly"] },
   { name: "Ultimate", price: "$99", period: "/month", cta: "Start Ultimate", ultimate: true,
     features: ["Everything in Pro", "120 sourcing credits a month", "Priority support", "Early access to new features"] },
 ];
@@ -41,6 +43,17 @@ const GUIDES = [
 
 const Landing = () => {
   const { checkout, loading: checkoutLoading } = useCheckout();
+  const { session } = useAuth();
+  const navigate = useNavigate();
+  // Same as Pricing: signed-out visitors sign up first, then continue to checkout.
+  const startUltimate = () => {
+    if (!session) {
+      savePendingPlan("ultimate");
+      navigate("/signup?plan=ultimate");
+      return;
+    }
+    checkout("ultimate");
+  };
 
   return (
     <div className="mk-page min-h-screen overflow-x-hidden">
@@ -99,7 +112,7 @@ const Landing = () => {
               <div className="absolute left-4 bottom-20 md:left-6 md:bottom-24 flex items-center gap-3 rounded-2xl bg-white/95 px-4 py-3 shadow-[0_12px_32px_-12px_rgba(16,24,40,0.35)] backdrop-blur">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0B0B0C]"><Factory className="h-4 w-4 text-white" /></span>
                 <div className="text-[13px] leading-tight">
-                  <div className="font-medium text-[#0B0B0C]">Supplier match found</div>
+                  <div className="font-medium text-[#0B0B0C]">Supplier results found</div>
                   <div className="mk-muted mk-num">from $2.10 a unit · MOQ 200</div>
                 </div>
               </div>
@@ -131,7 +144,7 @@ const Landing = () => {
         <div className="mk-container">
           <Reveal className="mx-auto max-w-3xl text-center">
             <h2 className="mk-h2">Every trending product, scored and staged</h2>
-            <p className="mk-lead mt-5">Sort 700+ TikTok Shop products by momentum, sales and margin. Each one is tagged with where it is in its life cycle, so you know what to launch and what to skip.</p>
+            <p className="mk-lead mt-5">Sort trending TikTok Shop products by momentum, sales and margin. Each one is tagged with where it is in its life cycle, so you know what to launch and what to skip.</p>
           </Reveal>
           <Reveal className="mt-12 md:mt-16">
             <HeroProductMock />
@@ -157,10 +170,10 @@ const Landing = () => {
       <section className="mk-soft py-16 md:py-20">
         <div className="mk-container grid grid-cols-2 gap-y-10 md:grid-cols-4">
           {[
-            ["700+", "products tracked"],
-            ["Weekly", "ranking refresh"],
+            ["Fresh", "trending products updated regularly"],
+            ["Top 3", "supplier results per search"],
             ["6%", "TikTok US referral fee, built in"],
-            ["3", "sourcing marketplaces"],
+            ["2+", "sourcing marketplaces (Amazon in beta)"],
           ].map(([k, v]) => (
             <div key={v} className="px-2">
               <div className="text-[44px] md:text-[64px] font-semibold leading-none tracking-[-0.045em] mk-num">{k}</div>
@@ -203,7 +216,7 @@ const Landing = () => {
             <div className="lg:order-2">
               <p className="text-[14px] font-medium text-[#0B0B0C]">02 · Find who makes it</p>
               <h3 className="mk-h2 mt-4">Match any product to suppliers in one click</h3>
-              <p className="mk-lead mt-5 max-w-[480px]">Search Alibaba, AliExpress and Amazon for matching listings, then compare unit cost, minimum order and shipping side by side.</p>
+              <p className="mk-lead mt-5 max-w-[480px]">Search Alibaba and AliExpress (Amazon in beta) for similar listings, then compare unit cost, minimum order and shipping side by side.</p>
               <Link to="/suppliers" className="mt-7 inline-flex items-center gap-1.5 text-[15px] font-medium text-[#0B0B0C] hover:underline">Where to source <ArrowRight className="h-4 w-4" /></Link>
             </div>
             <div className="mk-soft rounded-[28px] p-6 md:p-10 lg:order-1">
@@ -304,7 +317,7 @@ const Landing = () => {
                   ))}
                 </ul>
                 {p.ultimate ? (
-                  <button onClick={() => checkout("ultimate")} disabled={checkoutLoading} className="mk-btn-secondary mt-8 w-full">
+                  <button onClick={startUltimate} disabled={checkoutLoading} className="mk-btn-secondary mt-8 w-full">
                     {checkoutLoading ? "Loading…" : p.cta}
                   </button>
                 ) : p.featured ? (

@@ -73,6 +73,14 @@ describe("api error mapping", () => {
     expect(e.code).toBe("no_credits");
     expect(e.message).toBe("No credits left");
   });
+  it("402 without a code is an upgrade prompt", async () => {
+    reply(402, { detail: "The listing generator is a Pro feature" });
+    const e = await fail();
+    expect(e.kind).toBe("upgrade");
+    expect(e.message).toBe("The listing generator is a Pro feature");
+    reply(402, { detail: { code: "no_credits", message: "No credits left" } });
+    expect((await fail()).kind).not.toBe("upgrade");
+  });
   it("network failure", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("Failed to fetch"));
     expect((await fail()).message).toBe(API_MESSAGES.network);

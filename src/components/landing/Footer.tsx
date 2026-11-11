@@ -16,6 +16,7 @@ const COLS: { title: string; links: { label: string; to: string; external?: bool
     { label: "Log in", to: "/login" },
     { label: "Terms", to: "/terms" },
     { label: "Refund policy", to: "/refund" },
+    { label: "Contact support", to: "mailto:support@tikprofitpro.shop", external: true },
   ]},
 ];
 
