@@ -5,29 +5,30 @@ import { suppliers } from "@/lib/suppliers-data";
 import { safeHref } from "@/lib/safeUrl";
 
 const Suppliers = () => (
-  <div className="min-h-screen" style={{ background: "#080808", color: "#e8e8e8" }}>
-    <Navbar />
+  <div className="mk-page min-h-screen">
+    <Navbar variant="light" />
 
-    <section className="pt-32 pb-24 max-w-5xl mx-auto px-6">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
-        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">Where to Source</h1>
-        <p style={{ color: "#888" }}>Popular sourcing marketplaces for TikTok Shop sellers. These are platforms, not vetted suppliers: always check reviews, order a sample and confirm specs before buying in bulk.</p>
+    <section className="pt-32 md:pt-36 pb-24 mk-container">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-3xl text-center mb-14">
+        <div className="mk-pill">Sourcing</div>
+        <h1 className="mk-h2 mt-6">Where to source</h1>
+        <p className="mk-lead mt-5">Popular sourcing marketplaces for TikTok Shop sellers. These are platforms, not vetted suppliers: always check reviews, order a sample and confirm specs before buying in bulk.</p>
       </motion.div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {suppliers.map((s, i) => (
           <motion.div key={s.name}
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-            className="p-6 rounded-2xl border border-white/5 bg-[#111] hover:border-[#00ff85]/20 transition-all">
-            <div className="text-3xl mb-3">{s.emoji}</div>
-            <h3 className="font-bold text-lg mb-1">{s.name}</h3>
-            <div className="space-y-1 mb-4">
-              <p className="text-xs" style={{ color: "#888" }}>Category: {s.category}</p>
-              <p className="text-xs" style={{ color: "#888" }}>Shipping: {s.shipping}</p>
-              <p className="text-xs" style={{ color: "#888" }}>Min Order: {s.minOrder}</p>
-            </div>
+            className="mk-card flex flex-col p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(16,24,40,0.05),0_20px_40px_-20px_rgba(16,24,40,0.2)]">
+            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#F5F5F6] text-[22px]">{s.emoji}</div>
+            <h3 className="text-[17px] font-semibold tracking-[-0.02em] text-[#0B0B0C]">{s.name}</h3>
+            <dl className="mt-4 mb-6 space-y-2 border-t mk-divider pt-4 text-[13px]">
+              <div className="flex justify-between gap-4"><dt className="mk-muted">Category</dt><dd className="text-right text-[#2A2C30]">{s.category}</dd></div>
+              <div className="flex justify-between gap-4"><dt className="mk-muted">Shipping</dt><dd className="text-right text-[#2A2C30]">{s.shipping}</dd></div>
+              <div className="flex justify-between gap-4"><dt className="mk-muted">Min. order</dt><dd className="text-right text-[#2A2C30]">{s.minOrder}</dd></div>
+            </dl>
             <a href={safeHref(s.url)} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm font-semibold transition-colors hover:underline" style={{ color: "#00ff85" }}>
+              className="mt-auto inline-flex h-10 items-center justify-center rounded-full bg-[#F1F1F3] px-4 text-[14px] font-medium text-[#0B0B0C] transition-colors hover:bg-[#E6E6E9]">
               Visit {s.name} →
             </a>
           </motion.div>
@@ -35,7 +36,7 @@ const Suppliers = () => (
       </div>
     </section>
 
-    <Footer />
+    <Footer variant="light" />
   </div>
 );
 

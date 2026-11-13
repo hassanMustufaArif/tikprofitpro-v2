@@ -18,7 +18,7 @@ const kb = (n: number) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB
 const when = (iso?: string) => (iso ? new Date(iso).toLocaleString() : "");
 
 const Step = ({ n, title, children }: { n: number; title: string; children: React.ReactNode }) => (
-  <section className="rounded-lg border border-border bg-card p-4 space-y-3">
+  <section className="rounded-2xl border border-border bg-card p-5 space-y-3 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_32px_-16px_rgba(16,24,40,0.12)]">
     <div className="flex items-center gap-2">
       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-background text-[12px] font-semibold">{n}</span>
       <h2 className="text-sm font-semibold">{title}</h2>
@@ -31,7 +31,7 @@ const Btn = ({ onClick, children, primary, busy, disabled }: any) => (
   <button
     onClick={onClick}
     disabled={busy || disabled}
-    className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium border disabled:opacity-50 ${
+    className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[13px] font-medium border disabled:opacity-50 ${
       primary ? "bg-foreground text-background border-foreground hover:opacity-90" : "bg-white text-foreground border-border hover:bg-muted"}`}
   >
     {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}{children}
@@ -154,8 +154,8 @@ const AdminUpload = () => {
     <div className="space-y-4 pb-20 md:pb-6 max-w-3xl">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Weekly upload</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Upload this week's FastMoss product export (or Kalodata CSVs), then find suppliers. Takes a few minutes of your time each week.</p>
+          <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.03em]">Weekly upload</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">Upload this week's FastMoss product export (or Kalodata CSVs), then find suppliers. Takes a few minutes of your time each week.</p>
         </div>
         <Link to="/admin/review" className="text-[13px] underline">Supplier review</Link>
       </div>
@@ -181,7 +181,7 @@ const AdminUpload = () => {
           onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
           onDragLeave={() => setDrag(false)}
           onDrop={(e) => { e.preventDefault(); setDrag(false); addFiles(e.dataTransfer.files); }}
-          className={`cursor-pointer rounded-lg border-2 border-dashed p-6 text-center text-[13px] ${drag ? "border-foreground bg-muted" : "border-border"}`}
+          className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center text-[13px] transition-colors hover:bg-[#FAFAFA] ${drag ? "border-foreground bg-muted" : "border-border"}`}
         >
           <Upload className="mx-auto h-5 w-5 mb-1" />
           Drag CSV or XLSX files here, or click to choose

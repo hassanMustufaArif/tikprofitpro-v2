@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Search, Loader2, X, Lock, ChevronLeft, ChevronRight, ChevronDown, ArrowUpRight,
-  ArrowDown, ArrowUp, Package, ShoppingBag, Factory, ExternalLink,
+  ArrowDown, ArrowUp, Package, ShoppingBag, Factory, ExternalLink, LayoutGrid, List,
 } from "lucide-react";
 import ListProductModal from "@/components/ListProductModal";
 import { Link } from "react-router-dom";
@@ -16,6 +16,8 @@ import {
   commonWindowDays, windowText, revenueFor, unitsFor,
 } from "@/lib/productFormat";
 import { useAuth } from "@/contexts/AuthContext";
+import StagePill, { stageLabel, STAGE_LOOK } from "@/components/app/StagePill";
+import { ScoreBar, GrowthChip, ProductPhoto, RowSparkline, trendPoints, SkeletonRows, SkeletonCards, Skel, softShadow, hoverLift } from "@/components/app/kit";
 
 /* ─────────────────────────── formatting ─────────────────────────── */
 
@@ -77,42 +79,6 @@ const Est = ({ p }: { p: any }) =>
   isEstimated7d(p) ? <span className="ml-1 text-[10px] font-normal text-muted-foreground" title="Estimated: scaled up from a shorter sales window">est.</span> : null;
 
 /* ─────────────────────────── small pieces ─────────────────────────── */
-
-// Stages written by import_kalodata.py v2 (from real week-over-week history).
-// hot/watch/stable are kept so rows from the old importer still render.
-const STAGE: Record<string, { label: string; text: string; bg: string; dot: string }> = {
-  emerging:  { label: "Emerging",  text: "#6941C6", bg: "#F4F3FF", dot: "#7A5AF8" },
-  rising:    { label: "Rising",    text: "#067647", bg: "#ECFDF3", dot: "#12B76A" },
-  peaking:   { label: "Peaking",   text: "#B54708", bg: "#FFFAEB", dot: "#F79009" },
-  saturated: { label: "Saturated", text: "#B42318", bg: "#FEF3F2", dot: "#F04438" },
-  unknown:   { label: "New data",  text: "#475467", bg: "#F2F4F7", dot: "#98A2B3" },
-  hot:       { label: "Hot",       text: "#B42318", bg: "#FEF3F2", dot: "#F04438" },
-  watch:     { label: "Watch",     text: "#B54708", bg: "#FFFAEB", dot: "#F79009" },
-  stable:    { label: "Stable",    text: "#475467", bg: "#F2F4F7", dot: "#98A2B3" },
-};
-
-const StagePill = ({ phase }: { phase?: string }) => {
-  // DB values are v1 names (hot/rising/watch/pass); normalizeStage maps them to these keys.
-  const s = STAGE[normalizeStage(phase)] ?? STAGE.unknown;
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[12px] font-medium whitespace-nowrap" style={{ color: s.text, background: s.bg }}>
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />
-      {s.label}
-    </span>
-  );
-};
-
-const Score = ({ v }: { v: any }) => {
-  const n = Math.max(0, Math.min(100, Number(v) || 0));
-  return (
-    <div className="flex items-center justify-end gap-2">
-      <div className="h-1 w-10 rounded-full bg-muted overflow-hidden">
-        <div className="h-full rounded-full bg-foreground/70" style={{ width: `${n}%` }} />
-      </div>
-      <span className="w-6 text-right tabular-nums">{n}</span>
-    </div>
-  );
-};
 
 const Delta = ({ v }: { v: any }) => {
   const t = fmtPct(v);
@@ -210,6 +176,11 @@ const PLATFORMS = [
 
 const ITEMS_PER_PAGE = 25;
 
+const SORT_OPTIONS: { k: SortKey; label: string }[] = [
+  { k: "virality", label: "Score" }, { k: "gmv", label: "Revenue" }, { k: "units", label: "Units" },
+  { k: "views", label: "Video views" }, { k: "creators", label: "Creators" }, { k: "price", label: "Price" },
+];
+
 /* ─────────────────────────── page ─────────────────────────── */
 
 const Products = () => {
@@ -221,6 +192,7 @@ const Products = () => {
   const [stage, setStage] = useState<string>("all");
   const [sort, setSort] = useState<SortKey>("virality");
   const [dir, setDir] = useState<"desc" | "asc">("desc");
+  const [view, setView] = useState<"table" | "grid">("table");
   const [activeTab, setActiveTab] = useState<"products" | "shops" | "creators">("products");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [supplierProduct, setSupplierProduct] = useState<any>(null);
@@ -326,6 +298,7 @@ const Products = () => {
   const unitsVal = (p: any): number | null => (win ? unitsFor(p, win) : Number(p.units_sold_7d) || null);
   const winShort = win ? `${win}d` : "7d";
   const stageOptions = ["all", ...stagesPresent(items)];
+  const hasTrend = pageRows.some(p => trendPoints(p) != null);
   const totalGmv = visible.reduce((s, p) => s + (revVal(p) || 0), 0);
   const asOf = latestDataDate(items);
 
@@ -420,11 +393,13 @@ const Products = () => {
   return (
     <div className="mx-auto max-w-[1400px] space-y-5 pb-20 md:pb-6">
       {/* Header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="app-h1">TikTok Shop research</h1>
-        <p className="app-sub">
-          US best-sellers, the shops behind them and the creators selling them{asOf ? ` · Sales data to ${asOf}` : ""}
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.03em] text-foreground">TikTok Shop research</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            US best-sellers, the shops behind them and the creators selling them{asOf ? ` · Sales data to ${asOf}` : ""}
+          </p>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -441,150 +416,238 @@ const Products = () => {
 
       {/* ══ PRODUCTS ══ */}
       {activeTab === "products" && (
-        <div className="app-panel overflow-hidden">
-          {/* Filter bar */}
-          <div className="flex flex-col lg:flex-row lg:items-center gap-2 border-b border-border p-3">
-            {planLoading ? (
-              <div className="h-8 w-full lg:w-72 rounded-md bg-muted animate-pulse" aria-hidden />
-            ) : isFree ? (
-              <Link to="/pricing" className="relative flex h-8 w-full lg:w-72 items-center rounded-md border border-dashed border-border bg-muted/40 pl-8 pr-3 text-[13px] text-muted-foreground hover:text-foreground"
-                title="Search is on Pro. The Free plan shows the top 10 products.">
-                <Lock className="absolute left-2.5 h-3.5 w-3.5" strokeWidth={1.75} /> Upgrade to search
-              </Link>
-            ) : (
-              <div className="relative w-full lg:w-72">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search product names"
-                  className="h-8 w-full rounded-md border border-border bg-card pl-8 pr-3 text-[13px] outline-none placeholder:text-muted-foreground focus:border-foreground/40" />
+        <div className="space-y-4">
+          {/* Sticky filter bar */}
+          <div className="sticky top-0 z-20 -mx-4 bg-background/90 px-4 py-2 backdrop-blur-md md:-mx-8 md:px-8">
+            <div className={`rounded-2xl border border-border bg-card ${softShadow}`}>
+              <div className="flex flex-col gap-2.5 p-2.5 lg:flex-row lg:items-center">
+              {planLoading ? (
+                <div className="h-9 w-full lg:w-72 rounded-full bg-muted animate-pulse" aria-hidden />
+              ) : isFree ? (
+                <Link to="/pricing" className="relative flex h-9 w-full lg:w-72 items-center rounded-full border border-dashed border-border bg-muted/40 pl-9 pr-3 text-[13px] text-muted-foreground hover:text-foreground"
+                  title="Search is on Pro. The Free plan shows the top 10 products.">
+                  <Lock className="absolute left-3.5 h-3.5 w-3.5" strokeWidth={1.75} /> Upgrade to search
+                </Link>
+              ) : (
+                <div className="relative w-full lg:w-72">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search product names"
+                    className="h-9 w-full rounded-full border border-border bg-[#FAFAFA] pl-9 pr-3 text-[13px] outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground/40 focus:bg-white" />
+                </div>
+              )}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <label className="relative inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-white pl-3 pr-7 text-[12px] font-medium text-[#2A2C30] hover:bg-[#FAFAFA]">
+                  <span className="text-muted-foreground">Launched</span>
+                  <select value={added} onChange={e => setAdded(e.target.value)} className="appearance-none bg-transparent outline-none cursor-pointer">
+                    {ADDED.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                </label>
+                {view === "grid" && (
+                  <label className="relative inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-white pl-3 pr-7 text-[12px] font-medium text-[#2A2C30] hover:bg-[#FAFAFA]">
+                    <span className="text-muted-foreground">Sort</span>
+                    <select value={sort} onChange={e => { const k = e.target.value as SortKey; setSort(k); setDir(k === "price" ? "asc" : "desc"); }} className="appearance-none bg-transparent outline-none cursor-pointer">
+                      {SORT_OPTIONS.map(o => <option key={o.k} value={o.k}>{o.k === "gmv" ? `Revenue ${winShort}` : o.k === "units" ? `Units ${winShort}` : o.label}</option>)}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                  </label>
+                )}
               </div>
-            )}
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="app-chip relative pr-7">
-                <span className="text-muted-foreground">Launched</span>
-                <select value={added} onChange={e => setAdded(e.target.value)} className="appearance-none bg-transparent outline-none cursor-pointer">
-                  {ADDED.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-muted-foreground" />
-              </label>
-              <div className="inline-flex h-8 items-center rounded-md border border-border p-0.5">
-                {stageOptions.map(s => (
-                  <button key={s} onClick={() => setStage(s)}
-                    className={`h-full rounded px-2.5 text-[12px] font-medium transition-colors ${
-                      stage === s ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}>
-                    {s === "all" ? "All stages" : (STAGE[s] ?? STAGE.unknown).label}
+              <div className="flex items-center gap-3 lg:ml-auto">
+                {isLoading ? <Skel className="h-3.5 w-36" /> : <div className="text-[12px] text-muted-foreground tabular-nums whitespace-nowrap">
+                  <span className="text-foreground font-medium">{visible.length}</span> products
+                  {totalGmv > 0 && <> · <span className="text-foreground font-medium">{fmtUsd(totalGmv)}</span> revenue, {win ? windowText(win) : `7 days${visible.some(isEstimated7d) ? " (est.)" : ""}`}</>}
+                </div>}
+                <div className="inline-flex h-8 shrink-0 items-center rounded-full border border-border bg-[#FAFAFA] p-0.5" role="group" aria-label="View">
+                  <button onClick={() => setView("table")} aria-pressed={view === "table"} title="Table view"
+                    className={`inline-flex h-full w-8 items-center justify-center rounded-full transition-colors ${view === "table" ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                    <List className="h-3.5 w-3.5" />
                   </button>
-                ))}
+                  <button onClick={() => setView("grid")} aria-pressed={view === "grid"} title="Grid view"
+                    className={`inline-flex h-full w-8 items-center justify-center rounded-full transition-colors ${view === "grid" ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="lg:ml-auto text-[12px] text-muted-foreground tabular-nums whitespace-nowrap">
-              <span className="text-foreground font-medium">{visible.length}</span> products
-              {totalGmv > 0 && <> · <span className="text-foreground font-medium">{fmtUsd(totalGmv)}</span> revenue, {win ? windowText(win) : `7 days${visible.some(isEstimated7d) ? " (est.)" : ""}`}</>}
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 border-t border-border px-2.5 py-2">
+                <span className="mr-1 text-[12px] text-muted-foreground">Stage</span>
+                {stageOptions.map(s => {
+                  const on = stage === s;
+                  const look = s === "all" ? null : (STAGE_LOOK[s] ?? STAGE_LOOK.unknown);
+                  return (
+                    <button key={s} onClick={() => setStage(s)}
+                      className={`inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-colors ${
+                        on ? "border-foreground bg-foreground text-background" : "border-border bg-white text-[#2A2C30] hover:border-[#D4D4D8] hover:bg-[#FAFAFA]"}`}>
+                      {look && <span className="h-1.5 w-1.5 rounded-full" style={{ background: look.dot }} />}
+                      {s === "all" ? "All stages" : stageLabel(s)}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+            view === "grid" ? <SkeletonCards n={8} /> : <div className={`app-panel overflow-hidden rounded-2xl ${softShadow}`}><SkeletonRows rows={10} /></div>
           ) : error ? (
-            isApiError(error) && error.kind === "upgrade" ? (
-              <UpgradeRow text={error.message} />
-            ) : isApiError(error) && ["rate_limit", "auth", "forbidden"].includes(error.kind) ? (
-              <Empty>{error.message}</Empty>
-            ) : (
-              <Empty>Products didn't load. Refresh the page to try again.</Empty>
-            )
+            <div className={`app-panel overflow-hidden rounded-2xl ${softShadow}`}>
+              {isApiError(error) && error.kind === "upgrade" ? (
+                <UpgradeRow text={error.message} />
+              ) : isApiError(error) && ["rate_limit", "auth", "forbidden"].includes(error.kind) ? (
+                <Empty>{error.message}</Empty>
+              ) : (
+                <Empty>Products didn't load. Refresh the page to try again.</Empty>
+              )}
+            </div>
           ) : (
-            <>
-              {/* Desktop table */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full">
-                  <thead className="border-b border-border bg-muted/40">
-                    <tr>
-                      <th className="app-th w-10 text-center">#</th>
-                      <th className="app-th">Product</th>
-                      <SortTh k="price" label="Price" sort={sort} dir={dir} onSort={onSort} />
-                      <SortTh k="gmv" label={`Revenue ${winShort}`} sort={sort} dir={dir} onSort={onSort} />
-                      <SortTh k="units" label={`Units ${winShort}`} sort={sort} dir={dir} onSort={onSort} />
-                      <SortTh k="views" label="Video views" sort={sort} dir={dir} onSort={onSort} className="hidden xl:table-cell" />
-                      <SortTh k="creators" label="Creators" sort={sort} dir={dir} onSort={onSort} className="hidden lg:table-cell" />
-                      <SortTh k="virality" label="Score" sort={sort} dir={dir} onSort={onSort} />
-                      <th className="app-th">Stage</th>
-                      <th className="app-th w-[96px]" />
-                    </tr>
-                  </thead>
-                  <tbody>
+            <div className={view === "grid" ? "space-y-4" : `app-panel overflow-hidden rounded-2xl ${softShadow}`}>
+              {view === "grid" ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4 2xl:grid-cols-5">
                     {pageRows.map((p, i) => (
-                      <tr key={p.id ?? i} onClick={() => setSelectedProduct(p)}
-                        className="group border-b border-border last:border-0 hover:bg-muted/40 cursor-pointer">
-                        <td className="app-td text-center text-muted-foreground tabular-nums">{(currentPage - 1) * ITEMS_PER_PAGE + i + 1}</td>
-                        <td className="app-td max-w-[420px]">
-                          <div className="flex items-center gap-3">
-                            <Thumb src={p.image_storage_url || p.thumbnail_url} alt={p.product_name} />
-                            <div className="min-w-0">
-                              <div className="line-clamp-1 font-medium text-foreground">{p.product_name}</div>
-                              <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground">
-                                <span className="truncate">{leafCategory(p.category) || "Uncategorised"}</span>
-                                {isNewProduct(p, 30) && <span className="shrink-0 rounded bg-muted px-1.5 text-[11px] text-foreground">New</span>}
+                      <div key={p.id ?? i} role="button" tabIndex={0} onClick={() => setSelectedProduct(p)}
+                        onKeyDown={e => { if (e.key === "Enter") setSelectedProduct(p); }}
+                        className={`group flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-card text-left ${softShadow} ${hoverLift}`}>
+                        <div className="relative aspect-square overflow-hidden bg-[#F5F5F6]">
+                          <div className="absolute inset-0 transition-transform duration-300 group-hover:scale-[1.03]">
+                            <ProductPhoto src={p.image_storage_url || p.thumbnail_url} alt={p.product_name} fill rounded="rounded-none" />
+                          </div>
+                          <span className="absolute left-2.5 top-2.5 inline-flex rounded-full bg-white/95 p-0.5 shadow-sm"><StagePill phase={p.trend_phase} /></span>
+                          <span className="absolute right-2.5 top-2.5 rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-medium tabular-nums text-foreground shadow-sm">
+                            #{(currentPage - 1) * ITEMS_PER_PAGE + i + 1}
+                          </span>
+                          {isNewProduct(p, 30) && <span className="absolute bottom-2.5 left-2.5 rounded-full bg-[#0B0B0C] px-2 py-0.5 text-[11px] font-medium text-white">New</span>}
+                        </div>
+                        <div className="flex flex-1 flex-col p-3.5 md:p-4">
+                          <div className="line-clamp-2 text-[13px] font-medium leading-snug text-foreground">{p.product_name}</div>
+                          <div className="mt-1 line-clamp-1 text-[12px] text-muted-foreground">{leafCategory(p.category) || "Uncategorised"}</div>
+                          <div className="mt-auto flex items-end justify-between gap-2 pt-3">
+                            <div>
+                              <div className="text-[15px] font-semibold tabular-nums text-foreground">{fmtUsd(revVal(p))}</div>
+                              <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                                {winShort} revenue{!win && isEstimated7d(p) ? " est." : ""} <GrowthChip v={p.gmv_growth_pct} />
                               </div>
                             </div>
+                            <ScoreBar v={p.virality_score} width="w-10" />
                           </div>
-                        </td>
-                        <td className="app-td app-num"><Price p={p} /></td>
-                        <td className="app-td app-num font-medium text-foreground">{fmtUsd(revVal(p))}{!win && <Est p={p} />}<Delta v={p.gmv_growth_pct} /></td>
-                        <td className="app-td app-num">{fmtNum(unitsVal(p))}{!win && <Est p={p} />}</td>
-                        <td className="app-td app-num hidden xl:table-cell">{fmtNum(p.video_views)}</td>
-                        <td className="app-td app-num hidden lg:table-cell">{fmtNum(p.creator_count)}</td>
-                        <td className="app-td app-num"><Score v={p.virality_score} /></td>
-                        <td className="app-td"><StagePill phase={p.trend_phase} /></td>
-                        <td className="app-td text-right">
-                          <button onClick={e => openSupplier(p, e)} className="app-btn-ghost h-7 px-2.5 text-[12px] opacity-80 group-hover:opacity-100">
-                            Suppliers
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {pageRows.length === 0 && (
-                  <Empty>{added !== "all" || stage !== "all" ? "No products match these filters." : "No products found."}</Empty>
-                )}
-              </div>
-
-              {/* Mobile list */}
-              <div className="md:hidden divide-y divide-border">
-                {pageRows.map((p, i) => (
-                  <button key={p.id ?? i} onClick={() => setSelectedProduct(p)} className="w-full text-left px-3 py-3 flex gap-3 active:bg-muted/40">
-                    <Thumb src={p.image_storage_url || p.thumbnail_url} alt={p.product_name} size={48} />
-                    <div className="min-w-0 flex-1">
-                      <div className="line-clamp-2 text-[13px] font-medium text-foreground">{p.product_name}</div>
-                      <div className="mt-1.5 flex items-center gap-3 text-[12px] tabular-nums text-muted-foreground">
-                        <span className="text-foreground"><Price p={p} /></span>
-                        <span>{fmtUsd(revVal(p))} / {winShort}{!win && isEstimated7d(p) ? " est." : ""}</span>
-                        <StagePill phase={p.trend_phase} />
+                          <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-[12px] tabular-nums text-muted-foreground">
+                            <span className="text-foreground"><Price p={p} /></span>
+                            <button onClick={e => openSupplier(p, e)} className="inline-flex items-center gap-1 font-medium text-foreground hover:underline">
+                              Source <ArrowUpRight className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                ))}
-                {pageRows.length === 0 && <Empty>No products found.</Empty>}
-              </div>
+                    ))}
+                  </div>
+                  {pageRows.length === 0 && (
+                    <div className="app-panel rounded-2xl"><Empty>{added !== "all" || stage !== "all" ? "No products match these filters." : "No products found."}</Empty></div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Desktop table */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="border-b border-border bg-[#FAFAFA]">
+                        <tr>
+                          <th className="app-th w-10 text-center">#</th>
+                          <th className="app-th">Product</th>
+                          <th className="app-th">Stage</th>
+                          <SortTh k="virality" label="Score" sort={sort} dir={dir} onSort={onSort} />
+                          <SortTh k="price" label="Price" sort={sort} dir={dir} onSort={onSort} className="hidden lg:table-cell" />
+                          <SortTh k="gmv" label={`Revenue ${winShort}`} sort={sort} dir={dir} onSort={onSort} />
+                          <SortTh k="units" label={`Units ${winShort}`} sort={sort} dir={dir} onSort={onSort} />
+                          {hasTrend && <th className="app-th">Trend</th>}
+                          <SortTh k="views" label="Video views" sort={sort} dir={dir} onSort={onSort} className="hidden xl:table-cell" />
+                          <SortTh k="creators" label="Creators" sort={sort} dir={dir} onSort={onSort} className="hidden lg:table-cell" />
+                          <th className="app-th w-[96px]" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pageRows.map((p, i) => (
+                          <tr key={p.id ?? i} onClick={() => setSelectedProduct(p)}
+                            className="group border-b border-border last:border-0 cursor-pointer transition-colors hover:bg-[#FAFAFA]">
+                            <td className="app-td py-3 text-center text-muted-foreground tabular-nums">{(currentPage - 1) * ITEMS_PER_PAGE + i + 1}</td>
+                            <td className="app-td py-3 max-w-[400px]">
+                              <div className="flex items-center gap-3">
+                                <ProductPhoto src={p.image_storage_url || p.thumbnail_url} alt={p.product_name} size={44} />
+                                <div className="min-w-0">
+                                  <div className="line-clamp-1 font-medium text-foreground group-hover:underline group-hover:underline-offset-2 group-hover:decoration-[#D4D4D8]">{p.product_name}</div>
+                                  <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                                    <span className="truncate">{leafCategory(p.category) || "Uncategorised"}</span>
+                                    {isNewProduct(p, 30) && <span className="shrink-0 rounded-full bg-[#0B0B0C] px-1.5 text-[10px] font-medium leading-4 text-white">New</span>}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="app-td py-3"><StagePill phase={p.trend_phase} /></td>
+                            <td className="app-td py-3 app-num"><ScoreBar v={p.virality_score} /></td>
+                            <td className="app-td py-3 app-num hidden lg:table-cell"><Price p={p} /></td>
+                            <td className="app-td py-3 app-num">
+                              <div className="font-medium text-foreground">{fmtUsd(revVal(p))}{!win && <Est p={p} />}</div>
+                              <GrowthChip v={p.gmv_growth_pct} className="mt-0.5" />
+                            </td>
+                            <td className="app-td py-3 app-num">{fmtNum(unitsVal(p))}{!win && <Est p={p} />}</td>
+                            {hasTrend && <td className="app-td py-3"><RowSparkline p={p} color={(STAGE_LOOK[normalizeStage(p.trend_phase)] ?? STAGE_LOOK.unknown).dot} /></td>}
+                            <td className="app-td py-3 app-num hidden xl:table-cell">{fmtNum(p.video_views)}</td>
+                            <td className="app-td py-3 app-num hidden lg:table-cell">{fmtNum(p.creator_count)}</td>
+                            <td className="app-td py-3 text-right">
+                              <button onClick={e => openSupplier(p, e)}
+                                className="inline-flex h-8 items-center gap-1 rounded-full border border-border bg-white px-3 text-[12px] font-medium text-foreground transition-colors hover:border-foreground hover:bg-foreground hover:text-background">
+                                Source <ArrowUpRight className="h-3.5 w-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {pageRows.length === 0 && (
+                      <Empty>{added !== "all" || stage !== "all" ? "No products match these filters." : "No products found."}</Empty>
+                    )}
+                  </div>
 
-              {isFree && !planLoading && <UpgradeRow text="The Free plan shows the top 10 products. Pro unlocks the full list and search." />}
+                  {/* Mobile list */}
+                  <div className="md:hidden divide-y divide-border">
+                    {pageRows.map((p, i) => (
+                      <button key={p.id ?? i} onClick={() => setSelectedProduct(p)} className="w-full text-left px-3 py-3 flex gap-3 active:bg-muted/40">
+                        <ProductPhoto src={p.image_storage_url || p.thumbnail_url} alt={p.product_name} size={52} />
+                        <div className="min-w-0 flex-1">
+                          <div className="line-clamp-2 text-[13px] font-medium text-foreground">{p.product_name}</div>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] tabular-nums text-muted-foreground">
+                            <span className="text-foreground"><Price p={p} /></span>
+                            <span>{fmtUsd(revVal(p))} / {winShort}{!win && isEstimated7d(p) ? " est." : ""}</span>
+                            <StagePill phase={p.trend_phase} />
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                    {pageRows.length === 0 && <Empty>No products found.</Empty>}
+                  </div>
+                </>
+              )}
+
+              {isFree && !planLoading && (view === "grid"
+                ? <div className="app-panel overflow-hidden rounded-2xl"><UpgradeRow text="The Free plan shows the top 10 products. Pro unlocks the full list and search." /></div>
+                : <UpgradeRow text="The Free plan shows the top 10 products. Pro unlocks the full list and search." />)}
 
               {totalPages > 1 && (
-                <div className="flex items-center justify-between border-t border-border px-4 py-2.5">
+                <div className={`flex items-center justify-between px-4 py-2.5 ${view === "grid" ? "app-panel rounded-2xl" : "border-t border-border"}`}>
                   <span className="text-[12px] text-muted-foreground tabular-nums">
                     {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, visible.length)} of {visible.length}
                   </span>
                   <div className="flex items-center gap-1">
-                    <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="app-btn-ghost h-7 w-7 px-0"><ChevronLeft className="h-3.5 w-3.5" /></button>
+                    <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="app-btn-ghost h-7 w-7 px-0 rounded-full"><ChevronLeft className="h-3.5 w-3.5" /></button>
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
                       <button key={n} onClick={() => setCurrentPage(n)}
-                        className={`h-7 min-w-7 rounded-md px-2 text-[12px] tabular-nums ${n === currentPage ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted"}`}>{n}</button>
+                        className={`h-7 min-w-7 rounded-full px-2 text-[12px] tabular-nums ${n === currentPage ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted"}`}>{n}</button>
                     ))}
-                    <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="app-btn-ghost h-7 w-7 px-0"><ChevronRight className="h-3.5 w-3.5" /></button>
+                    <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="app-btn-ghost h-7 w-7 px-0 rounded-full"><ChevronRight className="h-3.5 w-3.5" /></button>
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
         </div>
       )}
@@ -633,7 +696,8 @@ const Products = () => {
                 ))}
               </tbody>
             </table>
-            {shopRows.length === 0 && <Empty>{shopsLoading ? "Loading shops…" : shopsError ? (isApiError(shopsError) ? shopsError.message : "Shops didn't load. Refresh the page to try again.") : shopSearch ? "No shops match this search." : "No shop data yet."}</Empty>}
+            {shopRows.length === 0 && shopsLoading && <SkeletonRows rows={8} />}
+            {shopRows.length === 0 && !shopsLoading && <Empty>{ shopsError ? (isApiError(shopsError) ? shopsError.message : "Shops didn't load. Refresh the page to try again.") : shopSearch ? "No shops match this search." : "No shop data yet."}</Empty>}
           </div>
           {isFree && <UpgradeRow text="Pro unlocks every new shop with full revenue breakdowns." />}
         </div>
@@ -704,7 +768,8 @@ const Products = () => {
                 ))}
               </tbody>
             </table>
-            {creatorRows.length === 0 && <Empty>{creatorsLoading ? "Loading creators…" : creatorsError ? (isApiError(creatorsError) ? creatorsError.message : "Creators didn't load. Refresh the page to try again.") : creatorSearch || creatorType !== "all" ? "No creators match these filters." : "No creator data yet."}</Empty>}
+            {creatorRows.length === 0 && creatorsLoading && <SkeletonRows rows={8} />}
+            {creatorRows.length === 0 && !creatorsLoading && <Empty>{ creatorsError ? (isApiError(creatorsError) ? creatorsError.message : "Creators didn't load. Refresh the page to try again.") : creatorSearch || creatorType !== "all" ? "No creators match these filters." : "No creator data yet."}</Empty>}
           </div>
           {isFree && <UpgradeRow text="Pro unlocks creator contact details." />}
         </div>

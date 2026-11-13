@@ -7,7 +7,7 @@ export const STAGE_COLORS: Record<Stage, string> = {
   saturated: "#98A2B3",
 };
 
-const STAGES: Record<Stage, { label: string; text: string; bg: string }> = {
+export const STAGES: Record<Stage, { label: string; text: string; bg: string }> = {
   emerging:  { label: "Emerging",  text: "#067647", bg: "#ECFDF3" },
   rising:    { label: "Rising",    text: "#175CD3", bg: "#EFF8FF" },
   peaking:   { label: "Peaking",   text: "#B54708", bg: "#FFFAEB" },

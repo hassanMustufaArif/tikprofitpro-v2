@@ -6,25 +6,23 @@ const DEMO_VIDEO_ID = "lWwx4ZflJyU";
 
 export default function Demo() {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-      <main className="flex-1 pt-28 pb-16 px-4 md:px-6">
-        <div className="max-w-[800px] mx-auto space-y-8">
-          <div className="text-center space-y-3">
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-              See TikProfitPro in Action
-            </h1>
-            <p className="text-muted-foreground">
+    <div className="mk-page min-h-screen flex flex-col">
+      <Navbar variant="light" />
+      <main className="flex-1 pt-32 md:pt-36 pb-24 px-5 md:px-8">
+        <div className="max-w-[920px] mx-auto space-y-10">
+          <div className="mx-auto max-w-2xl text-center">
+            <div className="mk-pill">Product demo</div>
+            <h1 className="mk-h2 mt-6">See TikProfitPro in action</h1>
+            <p className="mk-lead mt-5">
               A short product walkthrough: how to spot winning TikTok Shop products,
               check virality scores, match suppliers and work out real profit.
             </p>
           </div>
 
           <div
-            className="rounded-2xl overflow-hidden border border-border"
-            style={{ boxShadow: "0 0 40px rgba(0,255,136,0.12)" }}
+            className="rounded-[28px] overflow-hidden border border-[#E9E9EC] bg-[#F5F5F6] p-2 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_32px_64px_-32px_rgba(16,24,40,0.25)]"
           >
-            <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
+            <div className="relative w-full overflow-hidden rounded-[22px]" style={{ paddingTop: "56.25%" }}>
               <iframe
                 src={`https://www.youtube.com/embed/${DEMO_VIDEO_ID}?rel=0&modestbranding=1`}
                 title="TikProfitPro product demo"
@@ -39,21 +37,20 @@ export default function Demo() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               to="/signup"
-              className="inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-semibold min-h-[44px]"
-              style={{ background: "linear-gradient(135deg, #00ff85, #00cc6a)", color: "#080808" }}
+              className="mk-btn-primary"
             >
               Start for Free
             </Link>
             <Link
               to="/tutorials"
-              className="inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-medium border border-border text-foreground min-h-[44px] hover:bg-muted/30 transition-colors"
+              className="mk-btn-secondary"
             >
               Browse Tutorials
             </Link>
           </div>
         </div>
       </main>
-      <Footer />
+      <Footer variant="light" />
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import AuthShell, { AuthNote, authInput, authLabel, authLink, authPrimary } from "@/components/auth/AuthShell";
 import { Loader2 } from "lucide-react";
 import { MIN_PASSWORD_LENGTH } from "@/lib/authFlow";
 
@@ -56,48 +56,41 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-2">
-          <img src="/tikprofitpro_icon.svg" alt="TikProfitPro" className="h-12 w-12 mx-auto mb-2" />
-          <h1 className="text-2xl font-bold tracking-tight">Set a new password</h1>
-        </div>
+    <AuthShell title="Set a new password" subtitle={status === "ready" ? `Use at least ${MIN_PASSWORD_LENGTH} characters.` : undefined}>
+      {status === "checking" && (
+        <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-[#9A9EA5]" /></div>
+      )}
 
-        {status === "checking" && (
-          <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-        )}
+      {status === "invalid" && (
+        <AuthNote>
+          <p>This reset link has expired or was already used.</p>
+          <Link to="/forgot" className={authLink}>Send a new link</Link>
+        </AuthNote>
+      )}
 
-        {status === "invalid" && (
-          <div className="space-y-4 rounded-xl border border-border bg-card p-6 text-sm">
-            <p>This reset link has expired or was already used.</p>
-            <Link to="/forgot" className="inline-flex text-primary hover:underline">Send a new link</Link>
+      {status === "done" && (
+        <AuthNote>Your password is updated. Taking you to your dashboard…</AuthNote>
+      )}
+
+      {status === "ready" && (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="password" className={authLabel}>New password</Label>
+            <Input id="password" type="password" autoComplete="new-password" value={password}
+              onChange={(e) => setPassword(e.target.value)} required minLength={MIN_PASSWORD_LENGTH} className={authInput} />
           </div>
-        )}
-
-        {status === "done" && (
-          <div className="rounded-xl border border-border bg-card p-6 text-sm">Your password is updated. Taking you to your dashboard…</div>
-        )}
-
-        {status === "ready" && (
-          <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-border bg-card p-6">
-            <div className="space-y-2">
-              <Label htmlFor="password">New password</Label>
-              <Input id="password" type="password" autoComplete="new-password" value={password}
-                onChange={(e) => setPassword(e.target.value)} required minLength={MIN_PASSWORD_LENGTH} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm">Confirm new password</Label>
-              <Input id="confirm" type="password" autoComplete="new-password" value={confirm}
-                onChange={(e) => setConfirm(e.target.value)} required minLength={MIN_PASSWORD_LENGTH} />
-            </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" disabled={saving} className="w-full">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update password"}
-            </Button>
-          </form>
-        )}
-      </div>
-    </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="confirm" className={authLabel}>Confirm new password</Label>
+            <Input id="confirm" type="password" autoComplete="new-password" value={confirm}
+              onChange={(e) => setConfirm(e.target.value)} required minLength={MIN_PASSWORD_LENGTH} className={authInput} />
+          </div>
+          {error && <p className="rounded-xl border border-[#FECDCA] bg-[#FEF3F2] px-3.5 py-2.5 text-[13px] text-[#B42318]">{error}</p>}
+          <button type="submit" disabled={saving} className={`${authPrimary} mt-2`}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update password"}
+          </button>
+        </form>
+      )}
+    </AuthShell>
   );
 };
 

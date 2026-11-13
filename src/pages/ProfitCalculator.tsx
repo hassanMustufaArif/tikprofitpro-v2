@@ -60,16 +60,16 @@ const ProfitCalculatorContent = () => {
   ];
 
   return (
-    <div className="space-y-6 animate-slide-up pb-20 md:pb-6">
+    <div className="mx-auto max-w-[1100px] space-y-6 animate-slide-up pb-20 md:pb-6">
       <div>
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Profit Calculator</h1>
+        <h1 className="text-[26px] md:text-[32px] font-semibold leading-tight tracking-[-0.035em]">Profit calculator</h1>
         <p className="text-muted-foreground mt-1 text-sm">TikTok Shop US fees, creator commission and ads in one place. Results update as you type.</p>
       </div>
 
       <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card p-4 md:p-6 space-y-4">
+        <div className="rounded-2xl border border-border bg-card p-5 md:p-7 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_32px_-16px_rgba(16,24,40,0.14)] space-y-4">
           <div className="flex items-center gap-2 mb-2">
-            <Calculator className="h-5 w-5 text-primary" />
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground"><Calculator className="h-3.5 w-3.5 text-background" /></span>
             <h2 className="font-semibold text-sm md:text-base">Your numbers</h2>
           </div>
           <div className="space-y-3">
@@ -77,14 +77,14 @@ const ProfitCalculatorContent = () => {
               <div key={f.id}>
                 <Label htmlFor={f.id}>{f.label}</Label>
                 <Input id={f.id} type="number" inputMode="decimal" placeholder={f.placeholder} value={form[f.id]}
-                  onChange={(e) => update(f.id, e.target.value)} className="mt-1 bg-background min-h-[44px]" />
+                  onChange={(e) => update(f.id, e.target.value)} className="mt-1.5 h-11 rounded-xl bg-white tabular-nums" />
                 {f.hint && <p className="text-xs text-muted-foreground mt-1">{f.hint}</p>}
               </div>
             ))}
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4 md:p-6">
+        <div className="rounded-2xl border border-border bg-card p-5 md:p-7 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_32px_-16px_rgba(16,24,40,0.14)]">
           <h2 className="font-semibold mb-4 text-sm md:text-base">Results</h2>
           {hasInput ? (
             <div className="space-y-1">
@@ -99,15 +99,15 @@ const ProfitCalculatorContent = () => {
                 <span className={`text-lg md:text-xl font-bold tabular-nums ${r.profit >= 0 ? "text-success" : "text-destructive"}`}>{money(r.profit)}</span>
               </div>
               <div className="grid grid-cols-3 gap-2 pt-3 text-center">
-                <div className="rounded-lg bg-muted/30 p-2">
+                <div className="rounded-xl bg-[#F5F5F6] p-3">
                   <div className="text-xs text-muted-foreground">Per unit</div>
                   <div className="font-semibold tabular-nums">{money(r.profitPerUnit)}</div>
                 </div>
-                <div className="rounded-lg bg-muted/30 p-2">
+                <div className="rounded-xl bg-[#F5F5F6] p-3">
                   <div className="text-xs text-muted-foreground">Margin</div>
                   <div className="font-semibold tabular-nums">{r.margin.toFixed(1)}%</div>
                 </div>
-                <div className="rounded-lg bg-muted/30 p-2">
+                <div className="rounded-xl bg-[#F5F5F6] p-3">
                   <div className="text-xs text-muted-foreground">Break-even price</div>
                   <div className="font-semibold tabular-nums">{r.breakEvenPrice != null ? money(r.breakEvenPrice) : "—"}</div>
                 </div>
@@ -138,12 +138,12 @@ export default function ProfitCalculator() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-      <main className="flex-1 pt-28 pb-16 px-4 md:px-6">
+    <div className="mk-page min-h-screen flex flex-col">
+      <Navbar variant="light" />
+      <main className="flex-1 pt-28 md:pt-32 pb-20 px-5 md:px-8">
         <ProfitCalculatorContent />
       </main>
-      <Footer />
+      <Footer variant="light" />
     </div>
   );
 }

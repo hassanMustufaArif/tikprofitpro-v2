@@ -39,7 +39,7 @@ const groups = [
 
 const itemCls =
   "flex items-center gap-2.5 h-8 px-2.5 rounded-md text-[13px] text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground transition-colors";
-const activeCls = "bg-sidebar-accent text-foreground font-medium";
+const activeCls = "bg-sidebar-accent text-foreground font-medium shadow-[inset_0_0_0_1px_hsl(var(--border))]";
 
 export function AppSidebar() {
   const { checkout, loading } = useCheckout();
@@ -103,10 +103,10 @@ export function AppSidebar() {
           <div className="mx-2.5 h-4 w-24 rounded bg-muted animate-pulse group-data-[collapsible=icon]:hidden" aria-hidden />
         )}
         {user && !planLoading && !isPaid && (
-          <div className="rounded-lg border border-border p-3 group-data-[collapsible=icon]:hidden">
+          <div className="rounded-xl border border-border bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_20px_-12px_rgba(16,24,40,0.15)] group-data-[collapsible=icon]:hidden">
             <div className="text-[12px] text-muted-foreground">Current plan</div>
             <div className="text-[13px] font-medium text-foreground">{label} · 10 products</div>
-            <button onClick={() => checkout("pro")} disabled={loading} className="app-btn w-full mt-3">
+            <button onClick={() => checkout("pro")} disabled={loading} className="app-btn w-full mt-3 rounded-full">
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Upgrade to Pro · $39/mo"}
             </button>
           </div>

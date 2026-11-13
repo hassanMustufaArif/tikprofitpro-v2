@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import AuthShell, { AuthNote, authInput, authLabel, authLink, authPrimary } from "@/components/auth/AuthShell";
 import { Loader2 } from "lucide-react";
 import { RESET_REDIRECT_URL } from "@/lib/authFlow";
 
@@ -28,38 +28,30 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-2">
-          <img src="/tikprofitpro_icon.svg" alt="TikProfitPro" className="h-12 w-12 mx-auto mb-2" />
-          <h1 className="text-2xl font-bold tracking-tight">Reset your password</h1>
-          <p className="text-sm text-muted-foreground">We'll email you a link to set a new password.</p>
-        </div>
-
-        {state === "sent" ? (
-          <div className="space-y-4 rounded-xl border border-border bg-card p-6 text-sm">
-            <p>If an account exists for <span className="font-medium break-all">{email}</span>, a reset link is on its way. Check your inbox and spam folder.</p>
-            <p className="text-muted-foreground">Signed up with Google? Use "Continue with Google" on the login page instead.</p>
+    <AuthShell
+      title="Reset your password"
+      subtitle="We'll email you a link to set a new password."
+      footer={<Link to="/login" className={authLink}>Back to log in</Link>}
+    >
+      {state === "sent" ? (
+        <AuthNote>
+          <p>If an account exists for <span className="font-medium break-all text-[#0B0B0C]">{email}</span>, a reset link is on its way. Check your inbox and spam folder.</p>
+          <p className="text-[#6B6F76]">Signed up with Google? Use "Continue with Google" on the login page instead.</p>
+        </AuthNote>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className={authLabel}>Email</Label>
+            <Input id="email" type="email" placeholder="you@example.com" value={email}
+              onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={authInput} />
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-border bg-card p-6">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="you@example.com" value={email}
-                onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-            </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" disabled={state === "sending" || !email} className="w-full">
-              {state === "sending" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send reset link"}
-            </Button>
-          </form>
-        )}
-
-        <p className="text-center text-sm text-muted-foreground">
-          <Link to="/login" className="text-primary hover:underline">Back to log in</Link>
-        </p>
-      </div>
-    </div>
+          {error && <p className="rounded-xl border border-[#FECDCA] bg-[#FEF3F2] px-3.5 py-2.5 text-[13px] text-[#B42318]">{error}</p>}
+          <button type="submit" disabled={state === "sending" || !email} className={`${authPrimary} mt-2`}>
+            {state === "sending" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send reset link"}
+          </button>
+        </form>
+      )}
+    </AuthShell>
   );
 };
 
