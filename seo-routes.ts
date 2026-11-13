@@ -15,9 +15,9 @@ export const routeMeta: Record<string, RouteMeta> = {
   "/": {
     title: "TikProfitPro — TikTok Shop Product Research Tool",
     description:
-      "Find trending TikTok Shop products before they go viral. 700+ products updated weekly, a free profit calculator and supplier directory. Free plan, Pro $39/mo.",
+      "Find trending TikTok Shop products before they go viral. Fresh trending products updated regularly, a free profit calculator and supplier search. Free plan, Pro $39/mo.",
     heading: "TikTok Shop product research",
-    body: "TikProfitPro tracks trending TikTok Shop products, virality scores, new shops and top creators so US sellers can spot winners early, source them from verified suppliers and check margins before listing.",
+    body: "TikProfitPro tracks trending TikTok Shop products, virality scores, new shops and top creators so US sellers can spot winners early, search Alibaba and AliExpress for suppliers and check margins before listing.",
   },
   "/calculator": {
     title: "TikTok Shop Profit Calculator (Free) | TikProfitPro",
@@ -29,9 +29,9 @@ export const routeMeta: Record<string, RouteMeta> = {
   "/suppliers": {
     title: "Supplier Directory — TikProfitPro",
     description:
-      "Browse verified suppliers for trending TikTok Shop products to source and sell.",
-    heading: "Verified supplier directory",
-    body: "Search Alibaba, AliExpress and Amazon suppliers matched to trending TikTok Shop products, compare unit prices and minimum orders, then open the supplier listing directly.",
+      "Where to source trending TikTok Shop products: Alibaba, AliExpress and other marketplaces compared.",
+    heading: "Supplier directory",
+    body: "Search Alibaba and AliExpress (Amazon in beta) for listings similar to trending TikTok Shop products, compare unit prices and minimum orders, then open the supplier listing directly.",
   },
   "/demo": {
     title: "Watch Demo — TikProfitPro",

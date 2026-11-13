@@ -7,10 +7,11 @@ import { safeHref } from "@/lib/safeUrl";
 
 /**
  * Weekly upload (admins only; the API checks ADMIN_EMAILS).
- * 1) Drop the Kalodata CSV exports (products, creators, shops). The type is read from each file's columns.
+ * 1) Drop the Kalodata CSV exports or the FastMoss product .xlsx. The type is read from each file's columns.
  * 2) Check: previews the counts, writes nothing.
  * 3) Import: writes products/creators/shops, copies photos, retires products missing from this export.
- * 4) Find suppliers: runs photo matching on GitHub Actions (too heavy for the web server).
+ * 4) Find suppliers: runs the supplier search on GitHub Actions. With photo matching off (SOURCING_MATCHING=off,
+ *    the backend default) the top 3 Alibaba/AliExpress search results go live as "auto" rows, unscored.
  */
 
 const kb = (n: number) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
@@ -37,9 +38,26 @@ const Btn = ({ onClick, children, primary, busy, disabled }: any) => (
   </button>
 );
 
-const Log = ({ lines }: { lines: string[] }) => (
-  <pre className="max-h-72 overflow-auto rounded-md bg-muted p-3 text-[12px] leading-5 whitespace-pre-wrap">{lines.join("\n") || "…"}</pre>
-);
+// Scrolls to the newest line: the import's "Stopped: …" reason is always the LAST line, and it used
+// to sit below the fold of this box, so a failed import looked like a wall of normal progress.
+const Log = ({ lines }: { lines?: string[] }) => {
+  const ref = useRef<HTMLPreElement>(null);
+  const text = (lines ?? []).join("\n");
+  useEffect(() => { if (ref.current) ref.current.scrollTop = ref.current.scrollHeight; }, [text]);
+  return <pre ref={ref} className="max-h-72 overflow-auto rounded-md bg-muted p-3 text-[12px] leading-5 whitespace-pre-wrap">{text || "…"}</pre>;
+};
+
+/** The reason a job stopped: the backend's "Stopped: <Error>: <message>" log line, else its error name. */
+const failureReason = (j: any): string => {
+  const line = [...(j?.log ?? [])].reverse().find((l: string) => /^Stopped:/.test(String(l)));
+  return line ? String(line).replace(/^Stopped:\s*/, "") : j?.error ? String(j.error) : "No reason was recorded. Open the log below.";
+};
+
+/** Products written/previewed, from the job summary (null when the job had no product files). */
+const productCount = (j: any): number | null => {
+  const n = j?.summary?.products?.products;
+  return typeof n === "number" ? n : null;
+};
 
 const KIND_LABEL: Record<string, string> = { products: "Products", creators: "Creators", shops: "Shops" };
 
@@ -66,25 +84,42 @@ const AdminUpload = () => {
     retry: false,
   });
 
-  // poll a running import
+  // poll a running import. A single network blip used to stop polling for good and leave the page
+  // on "Importing…" forever; now transient errors are retried, and a 404 (server restarted, job lost)
+  // or repeated failures mark the job as failed so the page says so.
   useEffect(() => {
     if (!job || job.status !== "running") return;
+    let misses = 0;
     const t = setInterval(async () => {
-      try { setJob(await api.adminImportStatus(job.id)); } catch (e: any) { setErr(e.message); clearInterval(t); }
+      try { setJob(await api.adminImportStatus(job.id)); misses = 0; }
+      catch (e: any) {
+        misses += 1;
+        if (e?.status === 404 || e?.kind === "auth" || e?.kind === "forbidden" || misses >= 5) {
+          clearInterval(t);
+          setErr(e?.message ?? "Lost track of the import.");
+          setJob((j: any) => (j ? { ...j, status: "failed", error: e?.message ?? "Lost track of the import",
+            log: [...(j.log ?? []), `Stopped: ${e?.message ?? "lost track of the import"}. Check the Products page before importing again.`] } : j));
+        }
+      }
     }, 3000);
     return () => clearInterval(t);
   }, [job?.id, job?.status]);
 
   const addFiles = (list: FileList | null) => {
     if (!list) return;
-    const csv = Array.from(list).filter((f) => f.name.toLowerCase().endsWith(".csv"));
+    const csv = Array.from(list).filter((f) => /\.(csv|xlsx)$/i.test(f.name));
     setFiles((old) => [...old, ...csv.filter((f) => !old.some((o) => o.name === f.name && o.size === f.size))]);
     setPreview(null); setJob(null); setErr("");
   };
 
   const check = async () => {
     setErr(""); setBusy("check"); setJob(null);
-    try { setPreview(await api.adminImport(files, { dryRun: true, deactivate })); }
+    try {
+      const p = await api.adminImport(files, { dryRun: true, deactivate });
+      setPreview(p);
+      // The dry run comes back as HTTP 200 even when parsing failed; say so instead of unlocking Import.
+      if (p?.status === "failed") setErr(`Check failed: ${failureReason(p)}`);
+    }
     catch (e: any) { setErr(e.message); }
     finally { setBusy(""); }
   };
@@ -107,6 +142,8 @@ const AdminUpload = () => {
   };
 
   if (me.isLoading) return <div className="p-6"><Loader2 className="h-5 w-5 animate-spin" /></div>;
+  // A failed /admin/me (rate limit, server down, expired session) used to read as "not an admin".
+  if (me.isError) return <div className="p-6 text-sm text-red-700">Couldn't check admin access: {(me.error as any)?.message ?? "request failed"}. Refresh to try again.</div>;
   if (!me.data?.admin) return <div className="p-6 text-sm text-muted-foreground">This page is for TikProfitPro admins.</div>;
 
   const importing = job?.status === "running";
@@ -118,7 +155,7 @@ const AdminUpload = () => {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-xl md:text-2xl font-bold tracking-tight">Weekly upload</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Upload this week's Kalodata exports, then find suppliers. Takes a few minutes of your time each week.</p>
+          <p className="text-muted-foreground mt-1 text-sm">Upload this week's FastMoss product export (or Kalodata CSVs), then find suppliers. Takes a few minutes of your time each week.</p>
         </div>
         <Link to="/admin/review" className="text-[13px] underline">Supplier review</Link>
       </div>
@@ -128,10 +165,16 @@ const AdminUpload = () => {
           <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" /> <span>{err}</span>
         </div>
       )}
+      {job?.status === "failed" && (
+        <div role="alert" className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-[13px] text-red-700">
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+          <span><span className="font-semibold">Import failed. Nothing after the failing step was written.</span> {failureReason(job)}</span>
+        </div>
+      )}
 
-      <Step n={1} title="Add the Kalodata CSV files">
+      <Step n={1} title="Add the Kalodata CSV or FastMoss product (.xlsx) files">
         <p className="text-[13px] text-muted-foreground">
-          Export the same 7-day range for products (one file per category is fine), creators and shops. Drop them all here; the type is detected from the columns.
+          FastMoss: the product sales-rank .xlsx (its date range, e.g. 1 day, is read from the file). Kalodata: export the same date range for products (one file per category is fine), creators and shops. Drop them all here; the type is detected from the columns.
         </p>
         <div
           onClick={() => inputRef.current?.click()}
@@ -141,8 +184,8 @@ const AdminUpload = () => {
           className={`cursor-pointer rounded-lg border-2 border-dashed p-6 text-center text-[13px] ${drag ? "border-foreground bg-muted" : "border-border"}`}
         >
           <Upload className="mx-auto h-5 w-5 mb-1" />
-          Drag CSV files here, or click to choose
-          <input ref={inputRef} type="file" accept=".csv,text/csv" multiple className="hidden" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+          Drag CSV or XLSX files here, or click to choose
+          <input ref={inputRef} type="file" accept=".csv,.xlsx,text/csv" multiple className="hidden" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
         </div>
         {files.length > 0 && (
           <ul className="space-y-1">
@@ -174,18 +217,29 @@ const AdminUpload = () => {
       <Step n={2} title="Check, then import">
         <div className="flex flex-wrap gap-2">
           <Btn onClick={check} busy={busy === "check"} disabled={!files.length || importing}>Check files (writes nothing)</Btn>
-          <Btn primary onClick={doImport} busy={busy === "import" || importing} disabled={!preview || importing || job?.status === "done"}>
+          <Btn primary onClick={doImport} busy={busy === "import" || importing} disabled={!preview || preview.status === "failed" || importing || job?.status === "done"}>
             {importing ? "Importing…" : "Import"}
           </Btn>
         </div>
         {!preview && files.length > 0 && <p className="text-[12px] text-muted-foreground">Run Check first. Import unlocks once the preview looks right.</p>}
-        {preview && !job && <Log lines={preview.log} />}
+        {preview && !job && (
+          <>
+            {preview.status === "failed" ? (
+              <p className="flex items-center gap-2 text-[13px] text-red-700"><AlertTriangle className="h-4 w-4" /> Check failed: {failureReason(preview)}</p>
+            ) : productCount(preview) === 0 ? (
+              <p className="flex items-center gap-2 text-[13px] text-amber-700"><AlertTriangle className="h-4 w-4" /> Check found 0 products in these files. Importing would add nothing.</p>
+            ) : productCount(preview) != null ? (
+              <p className="flex items-center gap-2 text-[13px] text-emerald-700"><CheckCircle2 className="h-4 w-4" /> Check passed: {productCount(preview)} products ready to import.</p>
+            ) : null}
+            <Log lines={preview.log} />
+          </>
+        )}
         {job && (
           <>
             <div className="flex items-center gap-2 text-[13px]">
               {job.status === "running" && <><Loader2 className="h-4 w-4 animate-spin" /> Importing. Photos are copied too, so a full week takes about 5 to 15 minutes. You can leave this page open.</>}
-              {job.status === "done" && <><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Import finished {when(job.finished_at)}.</>}
-              {job.status === "failed" && <><AlertTriangle className="h-4 w-4 text-red-600" /> Import stopped. It's safe to run it again.</>}
+              {job.status === "done" && <><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Import finished {when(job.finished_at)}{productCount(job) != null ? `: ${productCount(job)} products written` : ""}.</>}
+              {job.status === "failed" && <span className="text-red-700"><AlertTriangle className="inline h-4 w-4 mr-1 text-red-600" /> Import failed {when(job.finished_at)}: {failureReason(job)}. Fix the cause, then run it again (it's safe to repeat).</span>}
             </div>
             <Log lines={job.log} />
           </>
@@ -194,7 +248,10 @@ const AdminUpload = () => {
 
       <Step n={3} title="Find suppliers">
         <p className="text-[13px] text-muted-foreground">
-          Runs the photo match on GitHub's servers. New matches of 80% or more go live; 60–79% go to <Link to="/admin/review" className="underline">Supplier review</Link>.
+          Runs the supplier search on GitHub's servers. With photo matching off (the default), the top 3 Alibaba/AliExpress
+          search results for each product go live straight away, with no match score. Spot-check them in{" "}
+          <Link to="/admin/review" className="underline">Supplier review</Link> and hide any that are the wrong product.
+          (Only if photo matching is switched on: 80%+ go live and 60–79% wait in the review queue.)
         </p>
         <div className="flex flex-wrap items-end gap-3 text-[13px]">
           <label className="space-y-1">

@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { useCheckout } from "@/hooks/useCheckout";
 import { safeImageSrc } from "@/lib/safeUrl";
 import { usePlan } from "@/hooks/usePlan";
+import { useAuth } from "@/contexts/AuthContext";
+import { formatPrice, normalizeStage } from "@/lib/productFormat";
 
 const iconMap = {
   total_products: Package,
@@ -30,18 +32,31 @@ const bgColorMap: Record<string, string> = {
   watch: "bg-warning/10",
 };
 
+// /stats buckets are virality-score ranges, not life-cycle stages, so they're labelled by score.
+// "Rising" etc. are reserved for the stage shown on each product (same as the Products page).
 const labelMap: Record<string, string> = {
   total_products: "Total Products",
-  hot: "Hot Products",
-  rising: "Rising Products",
-  watch: "Watch Products",
+  hot: "Score 80+",
+  rising: "Score 65–79",
+  watch: "Score 50–64",
 };
 
+// Same stage names as the Products page. The DB stores v1 names (hot/rising/watch/pass);
+// normalizeStage maps them back (hot→emerging, pass→saturated) so "pass" no longer shows as "New data".
+const STAGE_LABELS: Record<string, string> = {
+  emerging: "Emerging", rising: "Rising", peaking: "Peaking", saturated: "Saturated",
+  watch: "Watch", stable: "Stable", unknown: "New data",
+};
+const stageLabel = (phase?: string) => STAGE_LABELS[normalizeStage(phase)] ?? "New data";
+const stageStyle = (phase?: string) => phaseStyles[normalizeStage(phase)] ?? phaseStyles.stable;
+
 const phaseStyles: Record<string, string> = {
-  hot: "border-border bg-red-50 text-red-600",
+  emerging: "border-border bg-violet-50 text-violet-700",
   rising: "border-border bg-emerald-50 text-emerald-700",
+  peaking: "border-border bg-amber-50 text-amber-700",
+  saturated: "border-border bg-red-50 text-red-600",
   watch: "border-border bg-amber-50 text-amber-700",
-  stable: "border-gray-500/30 bg-gray-500/10 text-gray-400",
+  stable: "border-gray-500/30 bg-gray-500/10 text-gray-500",
 };
 
 const Dashboard = () => {
@@ -50,21 +65,26 @@ const Dashboard = () => {
     queryFn: () => api.getStats(),
   });
 
-  const { data: productsData, isLoading: productsLoading, error: productsError } = useQuery({
-    queryKey: ["products"],
+  // Wait for the session so the first request isn't sent signed-out (which returns the free top 10).
+  const { user, loading: authLoading } = useAuth();
+  const { data: productsData, isLoading: productsQueryLoading, error: productsError } = useQuery({
+    queryKey: ["dashboard-products", user?.id ?? "anon"],
     queryFn: () => api.getProducts(),
+    enabled: !authLoading,
   });
 
   const stats = statsData?.stats ?? {};
   const { checkout, loading: checkoutLoading } = useCheckout();
 
-  const { plan } = usePlan();
+  const { plan, isLoading: planLoading } = usePlan();
   const statKeys = ["total_products", "hot", "rising", "watch"];
+  const productsLoading = authLoading || planLoading || productsQueryLoading;
 
   const rawProducts = Array.isArray(productsData) ? productsData : productsData?.products ?? [];
-  const productLimit = plan === "free" ? 10 : rawProducts.length;
+  // Show nothing plan-specific until the plan is known, so Pro users never see a Free flash.
+  const isFree = !planLoading && plan === "free";
+  const productLimit = isFree ? 10 : rawProducts.length;
   const products = rawProducts.slice(0, productLimit);
-  const isFree = plan === "free";
 
   return (
     <div className="space-y-6 md:space-y-8 animate-slide-up pb-20 md:pb-6">
@@ -73,7 +93,7 @@ const Dashboard = () => {
           <div className="flex items-start sm:items-center gap-3">
             <AlertCircle className="h-5 w-5 text-amber-700 shrink-0 mt-0.5 sm:mt-0" />
             <p className="text-sm font-medium">
-              You're on the <span className="font-bold">Free Plan</span> — showing {products.length} products. Upgrade to Pro for full access.
+              You're on the <span className="font-bold">Free Plan</span>, which shows the top 10 products. Upgrade to Pro for the full list and search.
             </p>
           </div>
           <Link to="/pricing">
@@ -186,11 +206,11 @@ const Dashboard = () => {
                         </div>
                       </td>
                       <td className="py-3.5 px-4">
-                        <Badge variant="outline" className={phaseStyles[product.trend_phase] ?? phaseStyles.stable}>
-                          {product.trend_phase ?? "Stable"}
+                        <Badge variant="outline" className={stageStyle(product.trend_phase)}>
+                          {stageLabel(product.trend_phase)}
                         </Badge>
                       </td>
-                      <td className="py-3.5 px-4 text-muted-foreground font-medium">${product.tiktok_price ?? 0}</td>
+                      <td className="py-3.5 px-4 text-muted-foreground font-medium">{formatPrice(product)}</td>
                     </tr>
                   ))}
                   {products.length === 0 && (
@@ -230,8 +250,8 @@ const Dashboard = () => {
                         <p className="text-xs md:text-sm text-muted-foreground">{product.category}</p>
                       </div>
                     </div>
-                    <Badge variant="outline" className={`shrink-0 text-[10px] ${phaseStyles[product.trend_phase] ?? phaseStyles.stable}`}>
-                      {product.trend_phase ?? "Stable"}
+                    <Badge variant="outline" className={`shrink-0 text-[10px] ${stageStyle(product.trend_phase)}`}>
+                      {stageLabel(product.trend_phase)}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
@@ -241,7 +261,7 @@ const Dashboard = () => {
                       </div>
                       <span className="text-sm text-muted-foreground">{product.virality_score ?? 0}%</span>
                     </div>
-                    <span className="text-sm md:text-base font-medium text-muted-foreground">${product.tiktok_price ?? 0}</span>
+                    <span className="text-sm md:text-base font-medium text-muted-foreground">{formatPrice(product)}</span>
                   </div>
                 </div>
               ))}
@@ -258,7 +278,7 @@ const Dashboard = () => {
           <div className="flex items-center gap-3">
             <Crown className="h-6 w-6 text-emerald-700 shrink-0" />
             <p className="text-sm font-medium">
-              Unlock all products, supplier matching & profit calculator –{" "}
+              Unlock the full product list, search and 50 sourcing credits a month –{" "}
               <span className="text-emerald-700 font-semibold">Upgrade to Pro $39/mo</span>
             </p>
           </div>
