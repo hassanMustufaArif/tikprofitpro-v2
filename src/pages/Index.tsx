@@ -9,7 +9,7 @@ import { useCheckout } from "@/hooks/useCheckout";
 import { safeImageSrc } from "@/lib/safeUrl";
 import { usePlan } from "@/hooks/usePlan";
 import { useAuth } from "@/contexts/AuthContext";
-import { formatPrice } from "@/lib/productFormat";
+import { formatPrice, normalizeStage } from "@/lib/productFormat";
 
 const iconMap = {
   total_products: Package,
@@ -41,19 +41,20 @@ const labelMap: Record<string, string> = {
   watch: "Score 50–64",
 };
 
-// Same stage names as the Products page (import_kalodata.py stages; hot/watch/stable from the old importer).
+// Same stage names as the Products page. The DB stores v1 names (hot/rising/watch/pass);
+// normalizeStage maps them back (hot→emerging, pass→saturated) so "pass" no longer shows as "New data".
 const STAGE_LABELS: Record<string, string> = {
   emerging: "Emerging", rising: "Rising", peaking: "Peaking", saturated: "Saturated",
-  hot: "Hot", watch: "Watch", stable: "Stable", unknown: "New data",
+  watch: "Watch", stable: "Stable", unknown: "New data",
 };
-const stageLabel = (phase?: string) => STAGE_LABELS[(phase ?? "unknown").toLowerCase()] ?? "New data";
+const stageLabel = (phase?: string) => STAGE_LABELS[normalizeStage(phase)] ?? "New data";
+const stageStyle = (phase?: string) => phaseStyles[normalizeStage(phase)] ?? phaseStyles.stable;
 
 const phaseStyles: Record<string, string> = {
   emerging: "border-border bg-violet-50 text-violet-700",
   rising: "border-border bg-emerald-50 text-emerald-700",
   peaking: "border-border bg-amber-50 text-amber-700",
   saturated: "border-border bg-red-50 text-red-600",
-  hot: "border-border bg-red-50 text-red-600",
   watch: "border-border bg-amber-50 text-amber-700",
   stable: "border-gray-500/30 bg-gray-500/10 text-gray-500",
 };
@@ -205,7 +206,7 @@ const Dashboard = () => {
                         </div>
                       </td>
                       <td className="py-3.5 px-4">
-                        <Badge variant="outline" className={phaseStyles[(product.trend_phase ?? "").toLowerCase()] ?? phaseStyles.stable}>
+                        <Badge variant="outline" className={stageStyle(product.trend_phase)}>
                           {stageLabel(product.trend_phase)}
                         </Badge>
                       </td>
@@ -249,7 +250,7 @@ const Dashboard = () => {
                         <p className="text-xs md:text-sm text-muted-foreground">{product.category}</p>
                       </div>
                     </div>
-                    <Badge variant="outline" className={`shrink-0 text-[10px] ${phaseStyles[(product.trend_phase ?? "").toLowerCase()] ?? phaseStyles.stable}`}>
+                    <Badge variant="outline" className={`shrink-0 text-[10px] ${stageStyle(product.trend_phase)}`}>
                       {stageLabel(product.trend_phase)}
                     </Badge>
                   </div>

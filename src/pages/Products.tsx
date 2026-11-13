@@ -11,7 +11,10 @@ import { api, isApiError, API_MESSAGES } from "@/lib/api";
 import { usePlan } from "@/hooks/usePlan";
 import { calcProfit, DEFAULT_CREATOR_PCT, DEFAULT_REFERRAL_PCT } from "@/lib/fees";
 import { safeUrl, safeImageSrc } from "@/lib/safeUrl";
-import { displayPrice, isEstimated7d, latestDataDate, rankSuppliers } from "@/lib/productFormat";
+import {
+  displayPrice, isEstimated7d, latestDataDate, rankSuppliers, normalizeStage, stagesPresent,
+  commonWindowDays, windowText, revenueFor, unitsFor,
+} from "@/lib/productFormat";
 import { useAuth } from "@/contexts/AuthContext";
 
 /* ─────────────────────────── formatting ─────────────────────────── */
@@ -42,10 +45,15 @@ const leafCategory = (c?: string) => (c ?? "").split(">").map(s => s.trim()).fil
 
 const isNewProduct = (product: any, days: number | null) => {
   if (!days) return false;
-  const raw = product.created_at || product.first_seen_at || product.date_added;
-  if (!raw) return false;
-  const createdAt = new Date(raw.includes("T") ? raw : raw.replace(" ", "T") + "Z");
-  return (Date.now() - createdAt.getTime()) / 86_400_000 <= days;
+  // launch_date = when the product went on sale on TikTok Shop. created_at is only when it
+  // entered our DB, which is the same moment for every product in a fresh import.
+  const raw = product.launch_date || product.first_seen_at || product.created_at || product.date_added;
+  if (!raw || typeof raw !== "string") return false;
+  const createdAt = /^\d{4}-\d{2}-\d{2}$/.test(raw)
+    ? new Date(`${raw}T00:00:00Z`)
+    : new Date(raw.includes("T") ? raw : raw.replace(" ", "T") + "Z");
+  const t = createdAt.getTime();
+  return Number.isFinite(t) && (Date.now() - t) / 86_400_000 <= days;
 };
 
 // Data-quality guards: hide values that are clearly ingestion errors instead of showing them as facts.
@@ -84,7 +92,8 @@ const STAGE: Record<string, { label: string; text: string; bg: string; dot: stri
 };
 
 const StagePill = ({ phase }: { phase?: string }) => {
-  const s = STAGE[phase ?? "unknown"] ?? STAGE.unknown;
+  // DB values are v1 names (hot/rising/watch/pass); normalizeStage maps them to these keys.
+  const s = STAGE[normalizeStage(phase)] ?? STAGE.unknown;
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[12px] font-medium whitespace-nowrap" style={{ color: s.text, background: s.bg }}>
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />
@@ -192,7 +201,6 @@ const ADDED = [
   { id: "12m", label: "Last 12 months", days: 365 },
 ];
 
-const STAGES = ["all", "emerging", "rising", "peaking", "saturated"] as const;
 
 const PLATFORMS = [
   { id: "alibaba",    label: "Alibaba",    note: "Factories, bulk" },
@@ -210,7 +218,7 @@ const Products = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [added, setAdded] = useState("all");
-  const [stage, setStage] = useState<(typeof STAGES)[number]>("all");
+  const [stage, setStage] = useState<string>("all");
   const [sort, setSort] = useState<SortKey>("virality");
   const [dir, setDir] = useState<"desc" | "asc">("desc");
   const [activeTab, setActiveTab] = useState<"products" | "shops" | "creators">("products");
@@ -249,26 +257,33 @@ const Products = () => {
     refetchOnWindowFocus: false,
     retry: (count, err) => count < 1 && !(isApiError(err) && ["auth", "upgrade", "forbidden", "rate_limit"].includes(err.kind)),
     queryFn: async () => {
-      if (activeSearch) return api.searchProducts(activeSearch);
-      // The API returns at most 100 per call (10 for Free). First page, then the rest a few at a time.
+      if (activeSearch) return (await api.searchProducts(activeSearch, 100))?.products ?? [];
+      // The API returns at most 100 per call (10 for Free). Ask /stats for the total in parallel with
+      // the first page, then fetch exactly the remaining pages at once (was: blind batches of 4 up to
+      // offset 2000, i.e. wasted requests that each cost a plan lookup and count against the rate limit).
       const page = async (offset: number) => {
         const res: any = await api.getProducts({ limit: "100", offset: String(offset) });
         return { res, batch: (Array.isArray(res) ? res : res?.products ?? []) as any[] };
       };
-      const first = await page(0);
+      const [first, stats] = await Promise.all([page(0), api.getStats().catch(() => null)]);
       const all: any[] = [...first.batch];
       if (first.batch.length < 100 || first.res?.plan === "free") return all;
-      for (let offset = 100; offset < 2000; offset += 400) {
-        const pages = await Promise.all([0, 100, 200, 300].map((d) => offset + d).filter((o) => o < 2000).map(page));
-        let done = false;
-        for (const p of pages) {
-          if (done) break;
-          all.push(...p.batch);
-          if (p.batch.length < 100) done = true;
-        }
-        if (done) break;
+      const total = Number(stats?.stats?.total_products);
+      let offset = 100;
+      if (Number.isFinite(total) && total > 100) {
+        const offsets: number[] = [];
+        for (let o = 100; o < Math.min(total, 5000); o += 100) offsets.push(o);
+        const pages = await Promise.all(offsets.map(page));
+        for (const p of pages) all.push(...p.batch);
+        offset = 100 + offsets.length * 100;
+        if (pages.length && pages[pages.length - 1].batch.length < 100) return all;
       }
-      return all;
+      // Total unknown (or grew since /stats): continue one page at a time until a short page.
+      for (; offset < 5000; offset += 100) {
+        const p = await page(offset);
+        all.push(...p.batch);
+        if (p.batch.length < 100) break;
+      }
     },
   });
   const isLoading = authLoading || productsLoading;
@@ -286,7 +301,7 @@ const Products = () => {
   const rows = useMemo(() => {
     const days = ADDED.find(f => f.id === added)?.days ?? null;
     let r = days !== null ? items.filter(p => isNewProduct(p, days)) : items;
-    if (stage !== "all") r = r.filter(p => (p.trend_phase ?? "unknown") === stage);
+    if (stage !== "all") r = r.filter(p => normalizeStage(p.trend_phase) === stage);
     const val = (p: any): number => {
       switch (sort) {
         case "gmv": return Number(p.gmv_7d) || 0;
@@ -304,7 +319,14 @@ const Products = () => {
   const visible = isFree && !planLoading ? rows.slice(0, 10) : rows;
   const totalPages = Math.max(1, Math.ceil(visible.length / ITEMS_PER_PAGE));
   const pageRows = visible.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  const totalGmv = visible.reduce((s, p) => s + (Number(p.gmv_7d) || 0), 0);
+  // FastMoss exports are 1-day windows. When every row shares one window, show that window's real
+  // revenue/units with an honest label instead of a "7d" figure extrapolated x7.
+  const win = commonWindowDays(items);
+  const revVal = (p: any): number | null => (win ? revenueFor(p, win) : Number(p.gmv_7d) || null);
+  const unitsVal = (p: any): number | null => (win ? unitsFor(p, win) : Number(p.units_sold_7d) || null);
+  const winShort = win ? `${win}d` : "7d";
+  const stageOptions = ["all", ...stagesPresent(items)];
+  const totalGmv = visible.reduce((s, p) => s + (revVal(p) || 0), 0);
   const asOf = latestDataDate(items);
 
   /* ── supplier lookup (unchanged behaviour) ── */
@@ -375,8 +397,8 @@ const Products = () => {
   const closeSupplier = () => { supplierReq.current += 1; setSupplierLoading(false); setSupplierProduct(null); };
 
   /* ── shops & creators ── */
-  const { data: shopsData } = useQuery({ queryKey: ["shops"], queryFn: () => api.getShops({ limit: "50", sort_by: "gmv_total" }) });
-  const { data: creatorsData } = useQuery({ queryKey: ["creators"], queryFn: () => api.getCreators() });
+  const { data: shopsData, error: shopsError, isLoading: shopsLoading } = useQuery({ queryKey: ["shops"], queryFn: () => api.getShops({ limit: "50", sort_by: "gmv_total" }) });
+  const { data: creatorsData, error: creatorsError, isLoading: creatorsLoading } = useQuery({ queryKey: ["creators"], queryFn: () => api.getCreators() });
   const shops: any[] = shopsData?.shops ?? [];
   const creators: any[] = creatorsData?.creators ?? [];
 
@@ -432,31 +454,31 @@ const Products = () => {
             ) : (
               <div className="relative w-full lg:w-72">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products or categories"
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search product names"
                   className="h-8 w-full rounded-md border border-border bg-card pl-8 pr-3 text-[13px] outline-none placeholder:text-muted-foreground focus:border-foreground/40" />
               </div>
             )}
             <div className="flex flex-wrap items-center gap-2">
               <label className="app-chip relative pr-7">
-                <span className="text-muted-foreground">Added</span>
+                <span className="text-muted-foreground">Launched</span>
                 <select value={added} onChange={e => setAdded(e.target.value)} className="appearance-none bg-transparent outline-none cursor-pointer">
                   {ADDED.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
                 </select>
                 <ChevronDown className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-muted-foreground" />
               </label>
               <div className="inline-flex h-8 items-center rounded-md border border-border p-0.5">
-                {STAGES.map(s => (
+                {stageOptions.map(s => (
                   <button key={s} onClick={() => setStage(s)}
                     className={`h-full rounded px-2.5 text-[12px] font-medium transition-colors ${
                       stage === s ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}>
-                    {s === "all" ? "All stages" : STAGE[s].label}
+                    {s === "all" ? "All stages" : (STAGE[s] ?? STAGE.unknown).label}
                   </button>
                 ))}
               </div>
             </div>
             <div className="lg:ml-auto text-[12px] text-muted-foreground tabular-nums whitespace-nowrap">
               <span className="text-foreground font-medium">{visible.length}</span> products
-              {totalGmv > 0 && <> · <span className="text-foreground font-medium">{fmtUsd(totalGmv)}</span> revenue, 7 days{visible.some(isEstimated7d) ? " (est.)" : ""}</>}
+              {totalGmv > 0 && <> · <span className="text-foreground font-medium">{fmtUsd(totalGmv)}</span> revenue, {win ? windowText(win) : `7 days${visible.some(isEstimated7d) ? " (est.)" : ""}`}</>}
             </div>
           </div>
 
@@ -480,8 +502,8 @@ const Products = () => {
                       <th className="app-th w-10 text-center">#</th>
                       <th className="app-th">Product</th>
                       <SortTh k="price" label="Price" sort={sort} dir={dir} onSort={onSort} />
-                      <SortTh k="gmv" label="Revenue 7d" sort={sort} dir={dir} onSort={onSort} />
-                      <SortTh k="units" label="Units 7d" sort={sort} dir={dir} onSort={onSort} />
+                      <SortTh k="gmv" label={`Revenue ${winShort}`} sort={sort} dir={dir} onSort={onSort} />
+                      <SortTh k="units" label={`Units ${winShort}`} sort={sort} dir={dir} onSort={onSort} />
                       <SortTh k="views" label="Video views" sort={sort} dir={dir} onSort={onSort} className="hidden xl:table-cell" />
                       <SortTh k="creators" label="Creators" sort={sort} dir={dir} onSort={onSort} className="hidden lg:table-cell" />
                       <SortTh k="virality" label="Score" sort={sort} dir={dir} onSort={onSort} />
@@ -507,8 +529,8 @@ const Products = () => {
                           </div>
                         </td>
                         <td className="app-td app-num"><Price p={p} /></td>
-                        <td className="app-td app-num font-medium text-foreground">{fmtUsd(p.gmv_7d)}<Est p={p} /><Delta v={p.gmv_growth_pct} /></td>
-                        <td className="app-td app-num">{fmtNum(p.units_sold_7d)}<Est p={p} /></td>
+                        <td className="app-td app-num font-medium text-foreground">{fmtUsd(revVal(p))}{!win && <Est p={p} />}<Delta v={p.gmv_growth_pct} /></td>
+                        <td className="app-td app-num">{fmtNum(unitsVal(p))}{!win && <Est p={p} />}</td>
                         <td className="app-td app-num hidden xl:table-cell">{fmtNum(p.video_views)}</td>
                         <td className="app-td app-num hidden lg:table-cell">{fmtNum(p.creator_count)}</td>
                         <td className="app-td app-num"><Score v={p.virality_score} /></td>
@@ -536,7 +558,7 @@ const Products = () => {
                       <div className="line-clamp-2 text-[13px] font-medium text-foreground">{p.product_name}</div>
                       <div className="mt-1.5 flex items-center gap-3 text-[12px] tabular-nums text-muted-foreground">
                         <span className="text-foreground"><Price p={p} /></span>
-                        <span>{fmtUsd(p.gmv_7d)} / 7d{isEstimated7d(p) ? " est." : ""}</span>
+                        <span>{fmtUsd(revVal(p))} / {winShort}{!win && isEstimated7d(p) ? " est." : ""}</span>
                         <StagePill phase={p.trend_phase} />
                       </div>
                     </div>
@@ -611,7 +633,7 @@ const Products = () => {
                 ))}
               </tbody>
             </table>
-            {shopRows.length === 0 && <Empty>No shop data yet.</Empty>}
+            {shopRows.length === 0 && <Empty>{shopsLoading ? "Loading shops…" : shopsError ? (isApiError(shopsError) ? shopsError.message : "Shops didn't load. Refresh the page to try again.") : shopSearch ? "No shops match this search." : "No shop data yet."}</Empty>}
           </div>
           {isFree && <UpgradeRow text="Pro unlocks every new shop with full revenue breakdowns." />}
         </div>
@@ -682,7 +704,7 @@ const Products = () => {
                 ))}
               </tbody>
             </table>
-            {creatorRows.length === 0 && <Empty>No creator data yet.</Empty>}
+            {creatorRows.length === 0 && <Empty>{creatorsLoading ? "Loading creators…" : creatorsError ? (isApiError(creatorsError) ? creatorsError.message : "Creators didn't load. Refresh the page to try again.") : creatorSearch || creatorType !== "all" ? "No creators match these filters." : "No creator data yet."}</Empty>}
           </div>
           {isFree && <UpgradeRow text="Pro unlocks creator contact details." />}
         </div>
@@ -705,8 +727,21 @@ const Products = () => {
             )}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-px overflow-hidden rounded-lg border border-border bg-border [&>*]:bg-card">
               <Stat label="Price" value={<Price p={selectedProduct} />} />
-              <Stat label={isEstimated7d(selectedProduct) ? "Revenue, 7 days (est.)" : "Revenue, 7 days"} value={fmtUsd(selectedProduct.gmv_7d)} sub={<Delta v={selectedProduct.gmv_growth_pct} />} />
-              <Stat label={isEstimated7d(selectedProduct) ? "Units, 7 days (est.)" : "Units, 7 days"} value={fmtNum(selectedProduct.units_sold_7d)} />
+              {(() => {
+                const w = Number(selectedProduct.window_days);
+                const short = Number.isFinite(w) && w > 0 && w < 7 ? Math.round(w) : null;
+                return short ? (
+                  <>
+                    <Stat label={`Revenue, ${windowText(short)}`} value={fmtUsd(revenueFor(selectedProduct, short))} sub={<Delta v={selectedProduct.gmv_growth_pct} />} />
+                    <Stat label={`Units, ${windowText(short)}`} value={fmtNum(unitsFor(selectedProduct, short))} />
+                  </>
+                ) : (
+                  <>
+                    <Stat label={isEstimated7d(selectedProduct) ? "Revenue, 7 days (est.)" : "Revenue, 7 days"} value={fmtUsd(selectedProduct.gmv_7d)} sub={<Delta v={selectedProduct.gmv_growth_pct} />} />
+                    <Stat label={isEstimated7d(selectedProduct) ? "Units, 7 days (est.)" : "Units, 7 days"} value={fmtNum(selectedProduct.units_sold_7d)} />
+                  </>
+                );
+              })()}
               <Stat label="Video views" value={fmtNum(selectedProduct.video_views)} />
               <Stat label="Creators" value={fmtNum(selectedProduct.creator_count)} />
               <Stat label="Score" value={`${selectedProduct.virality_score ?? 0}/100`} />
@@ -807,7 +842,7 @@ const Products = () => {
                       <th className="app-th">Supplier</th>
                       <th className="app-th app-num">Unit cost</th>
                       <th className="app-th app-num">Min order</th>
-                      <th className="app-th app-num">Match</th>
+                      {supplierResults.some((r: any) => r?.similarity != null) && <th className="app-th app-num">Match</th>}
                       <th className="app-th app-num">Margin</th>
                       <th className="app-th" />
                     </tr>
@@ -832,7 +867,8 @@ const Products = () => {
                           </td>
                           <td className="app-td app-num font-medium text-foreground">{Number.isFinite(unit) && unit > 0 ? `$${unit.toFixed(2)}` : "—"}</td>
                           <td className="app-td app-num">{s.moq ? Number(s.moq).toLocaleString() : "—"}</td>
-                          <td className="app-td app-num">{s.similarity != null ? `${Math.round(Number(s.similarity) * 100)}%` : "—"}</td>
+                          {/* Photo matching is off (SOURCING_MATCHING=off): rows are unscored, so the column only shows when a score exists. */}
+                          {supplierResults.some((r: any) => r?.similarity != null) && <td className="app-td app-num">{s.similarity != null ? `${Math.round(Number(s.similarity) * 100)}%` : "—"}</td>}
                           <td className="app-td app-num">
                             {est ? (
                               <>

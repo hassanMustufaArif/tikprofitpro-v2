@@ -25,7 +25,7 @@ export function usePlan() {
     },
     enabled: !!user?.email,
   });
-  const raw = (data?.plan ?? "free").toString().toLowerCase();
+  const raw = (data?.plan ?? "free").toString().trim().toLowerCase(); // same as the API's normalize_plan
   const plan: Plan = raw === "pro" || raw === "ultimate" ? (raw as Plan) : "free";
   const label = plan === "free" ? "Free" : plan === "pro" ? "Pro" : "Ultimate";
   // Loading until the session is known and, when signed in, the plan has arrived, so callers
