@@ -79,3 +79,73 @@ export function rankSuppliers(rows: Row[]): Row[] {
     : [...list];
   return dedupeSuppliers(ordered);
 }
+
+/* ─────────────── life-cycle stages ─────────────── */
+
+/**
+ * Stage keys the UI shows. The DB still has the v1 check constraint, so import_kalodata.py
+ * writes v1 names (emerging→hot, peaking→watch, saturated→pass, unknown→watch). Read those
+ * back as the v2 stage they came from. "watch" stays its own key: it is either peaking or
+ * unknown and the importer can't tell them apart once written.
+ */
+export type StageKey = "emerging" | "rising" | "peaking" | "watch" | "saturated" | "stable" | "unknown";
+export const STAGE_ORDER: StageKey[] = ["emerging", "rising", "peaking", "watch", "saturated", "stable", "unknown"];
+
+const STAGE_ALIASES: Record<string, StageKey> = {
+  emerging: "emerging", hot: "emerging",
+  rising: "rising",
+  peaking: "peaking",
+  watch: "watch",
+  saturated: "saturated", pass: "saturated",
+  stable: "stable",
+  unknown: "unknown",
+};
+
+export function normalizeStage(phase: unknown): StageKey {
+  const k = (phase ?? "").toString().trim().toLowerCase();
+  return STAGE_ALIASES[k] ?? "unknown";
+}
+
+/** Stages present in these rows, in life-cycle order (for filter chips that match the data). */
+export function stagesPresent(rows: Row[]): StageKey[] {
+  const seen = new Set((rows ?? []).map((r) => normalizeStage(r?.trend_phase)));
+  return STAGE_ORDER.filter((s) => seen.has(s));
+}
+
+/* ─────────────── sales window ─────────────── */
+
+const posInt = (v: unknown): number | null => {
+  const n = Number(v);
+  return v != null && Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+};
+
+/** The sales window (in days) every row shares, or null when rows differ or don't say. */
+export function commonWindowDays(rows: Row[]): number | null {
+  let w: number | null = null;
+  for (const r of rows ?? []) {
+    const d = posInt(r?.window_days);
+    if (d == null) return null;
+    if (w == null) w = d;
+    else if (w !== d) return null;
+  }
+  return w;
+}
+
+/** "1 day" / "7 days". */
+export const windowText = (days: number) => `${days} ${days === 1 ? "day" : "days"}`;
+
+/**
+ * Revenue for `days` days. Uses the real window figure when the row's window is exactly `days`,
+ * otherwise scales the stored 7-day figure. Null when there is no figure.
+ */
+export function revenueFor(p: Row, days: number): number | null {
+  if (posInt(p?.window_days) === days && Number(p?.revenue_window) > 0) return Number(p.revenue_window);
+  const g = Number(p?.gmv_7d);
+  return Number.isFinite(g) && g > 0 ? (g / 7) * days : null;
+}
+
+export function unitsFor(p: Row, days: number): number | null {
+  if (posInt(p?.window_days) === days && Number(p?.units_window) > 0) return Number(p.units_window);
+  const u = Number(p?.units_sold_7d);
+  return Number.isFinite(u) && u > 0 ? (u / 7) * days : null;
+}
