@@ -136,6 +136,9 @@ export const isCheckoutPlan = (p: unknown): p is CheckoutPlan =>
   typeof p === "string" && (CHECKOUT_PLANS as readonly string[]).includes(p);
 
 export const api = {
+  // Effective plan for the UI: admins (ADMIN_EMAILS / ADMIN_USER_IDS on the API) are "ultimate";
+  // billing_plan is the stored users.plan that credits and Lemon Squeezy use.
+  getMe: () => apiFetch("/me"),
   getStats: () => apiFetch("/stats"),
   getProducts: (params?: Record<string, string>) =>
     apiFetch(`/products?${new URLSearchParams(params)}`),
@@ -153,6 +156,9 @@ export const api = {
     apiFetch("/generate-listing", { method: "POST", body: JSON.stringify(data) }),
   getShops: (params?: Record<string, string>) =>
     apiFetch(`/shops?${new URLSearchParams(params)}`),
+  // Shops behind the current product list: product count, revenue share, growth, top products.
+  getCatalogueShops: (params?: Record<string, string>) =>
+    apiFetch(`/shops/catalogue?${new URLSearchParams(params)}`),
   getCreators: (params?: Record<string, string>) =>
     apiFetch(`/creators?${new URLSearchParams(params)}`),
   // Admin: supplier review queue
@@ -174,6 +180,7 @@ export const api = {
     return apiUpload("/admin/import", form);
   },
   adminImportStatus: (jobId: string) => apiFetch(`/admin/import/${jobId}`),
+  adminImports: () => apiFetch("/admin/import"),
   adminSourcingRun: (data: { mode: "new" | "all"; max_requests: number; limit?: number }) =>
     apiFetch("/admin/sourcing/run", { method: "POST", body: JSON.stringify(data) }),
   adminSourcingRuns: () => apiFetch("/admin/sourcing/runs"),

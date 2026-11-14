@@ -16,6 +16,7 @@ import {
   commonWindowDays, windowText, revenueFor, unitsFor,
 } from "@/lib/productFormat";
 import { useAuth } from "@/contexts/AuthContext";
+import { fetchAllProducts, shopFootprint } from "@/lib/productPaging";
 
 /* ─────────────────────────── formatting ─────────────────────────── */
 
@@ -258,32 +259,8 @@ const Products = () => {
     retry: (count, err) => count < 1 && !(isApiError(err) && ["auth", "upgrade", "forbidden", "rate_limit"].includes(err.kind)),
     queryFn: async () => {
       if (activeSearch) return (await api.searchProducts(activeSearch, 100))?.products ?? [];
-      // The API returns at most 100 per call (10 for Free). Ask /stats for the total in parallel with
-      // the first page, then fetch exactly the remaining pages at once (was: blind batches of 4 up to
-      // offset 2000, i.e. wasted requests that each cost a plan lookup and count against the rate limit).
-      const page = async (offset: number) => {
-        const res: any = await api.getProducts({ limit: "100", offset: String(offset) });
-        return { res, batch: (Array.isArray(res) ? res : res?.products ?? []) as any[] };
-      };
-      const [first, stats] = await Promise.all([page(0), api.getStats().catch(() => null)]);
-      const all: any[] = [...first.batch];
-      if (first.batch.length < 100 || first.res?.plan === "free") return all;
-      const total = Number(stats?.stats?.total_products);
-      let offset = 100;
-      if (Number.isFinite(total) && total > 100) {
-        const offsets: number[] = [];
-        for (let o = 100; o < Math.min(total, 5000); o += 100) offsets.push(o);
-        const pages = await Promise.all(offsets.map(page));
-        for (const p of pages) all.push(...p.batch);
-        offset = 100 + offsets.length * 100;
-        if (pages.length && pages[pages.length - 1].batch.length < 100) return all;
-      }
-      // Total unknown (or grew since /stats): continue one page at a time until a short page.
-      for (; offset < 5000; offset += 100) {
-        const p = await page(offset);
-        all.push(...p.batch);
-        if (p.batch.length < 100) break;
-      }
+      // The API returns at most 100 per call (10 for Free); see fetchAllProducts.
+      return fetchAllProducts((p) => api.getProducts(p), () => api.getStats());
     },
   });
   const isLoading = authLoading || productsLoading;
@@ -328,6 +305,8 @@ const Products = () => {
   const stageOptions = ["all", ...stagesPresent(items)];
   const totalGmv = visible.reduce((s, p) => s + (revVal(p) || 0), 0);
   const asOf = latestDataDate(items);
+  // How big the selected shop is in the current product list (paid users have the whole list).
+  const selectedShopFootprint = selectedShop && !isFree ? shopFootprint(items, selectedShop.shop_name, revVal) : null;
 
   /* ── supplier lookup (unchanged behaviour) ── */
   const supplierReq = useRef(0);
@@ -907,13 +886,19 @@ const Products = () => {
           <div className="p-5 space-y-5">
             <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border [&>*]:bg-card">
               <Stat label="Revenue" value={fmtUsd(selectedShop.gmv_total)} sub={<Delta v={selectedShop.gmv_growth_pct} />} />
-              <Stat label="Items sold" value={fmtNum(selectedShop.product_count ?? selectedShop.item_sold)} />
+              {/* was product_count ?? item_sold: a product count shown as "items sold" */}
+              <Stat label="Items sold" value={fmtNum(selectedShop.item_sold)} />
               <Stat label="Avg unit price" value={fmtUsd(selectedShop.avg_unit_price)} />
               <Stat label="Video revenue" value={fmtUsd(selectedShop.video_revenue)} />
               <Stat label="Live revenue" value={fmtUsd(selectedShop.live_revenue)} />
               <Stat label="Product card revenue" value={fmtUsd(selectedShop.product_card_revenue)} />
               <Stat label="Own account revenue" value={fmtUsd(selectedShop.self_operated_revenue)} />
               <Stat label="Affiliate revenue" value={fmtUsd(selectedShop.affiliate_revenue)} />
+              {selectedShopFootprint && <>
+                <Stat label="Products in this list" value={selectedShopFootprint.count.toLocaleString()} />
+                <Stat label={`Share of list revenue (${winShort})`}
+                  value={selectedShopFootprint.sharePct == null ? "—" : `${selectedShopFootprint.sharePct.toFixed(1)}%`} />
+              </>}
             </div>
             {safeUrl(selectedShop.shop_url) && (
               <a href={safeUrl(selectedShop.shop_url)} target="_blank" rel="noopener noreferrer" className="app-btn h-10 w-full">
