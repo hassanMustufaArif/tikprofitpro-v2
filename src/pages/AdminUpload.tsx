@@ -105,6 +105,23 @@ const AdminUpload = () => {
     return () => clearInterval(t);
   }, [job?.id, job?.status]);
 
+  // Re-attach to an import that is still running (page reloaded, or opened on another device).
+  // The API now keeps jobs in the import_jobs table, so they survive a server restart too.
+  useEffect(() => {
+    if (!me.data?.admin) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const list: any = await api.adminImports();
+        const running = (list?.imports ?? []).find((j: any) => j?.status === "running");
+        if (!running?.id) return;
+        const full = await api.adminImportStatus(running.id);
+        if (!cancelled) setJob((cur: any) => cur ?? full);
+      } catch { /* older API or no access: nothing to resume */ }
+    })();
+    return () => { cancelled = true; };
+  }, [me.data?.admin]);
+
   const addFiles = (list: FileList | null) => {
     if (!list) return;
     const csv = Array.from(list).filter((f) => /\.(csv|xlsx)$/i.test(f.name));

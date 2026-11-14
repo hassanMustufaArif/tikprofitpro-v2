@@ -1,35 +1,51 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type Plan = "free" | "pro" | "ultimate";
 
+const asPlan = (raw: unknown): Plan => {
+  const p = (raw ?? "free").toString().trim().toLowerCase(); // same as the API's normalize_plan
+  return p === "pro" || p === "ultimate" ? (p as Plan) : "free";
+};
+
 /**
- * Single source of truth for the user's plan in the UI.
- * Reads users.plan from Supabase. Every page uses this hook so the
- * dashboard, sidebar, products and settings never disagree.
- * NOTE: this is display only. Real access control must be enforced server-side.
+ * The plan the API applies to this user, read from GET /me. Admins count as Ultimate there
+ * (they used to see the Free top 10 because only users.plan was read). If /me isn't deployed yet
+ * or fails, falls back to users.plan from Supabase as before.
+ * Every page uses this hook so the dashboard, sidebar, products and settings never disagree.
+ * NOTE: this is display only. Real access control is enforced server-side.
  */
+export async function loadPlan(email: string): Promise<{ plan: Plan; billingPlan: Plan; admin: boolean }> {
+  try {
+    const me = await api.getMe();
+    if (me && typeof me.plan === "string") {
+      return { plan: asPlan(me.plan), billingPlan: asPlan(me.billing_plan ?? me.plan), admin: !!me.admin };
+    }
+  } catch { /* old API without /me, or offline: use the stored plan */ }
+  const { data } = await supabase.from("users").select("plan").eq("user_email", email).maybeSingle();
+  const plan = asPlan(data?.plan);
+  return { plan, billingPlan: plan, admin: false };
+}
+
 export function usePlan() {
   const { user, loading: authLoading } = useAuth();
   const { data, isPending } = useQuery({
     queryKey: ["user-plan", user?.email],
-    queryFn: async () => {
-      if (!user?.email) return null;
-      const { data } = await supabase
-        .from("users")
-        .select("plan")
-        .eq("user_email", user.email)
-        .maybeSingle();
-      return data;
-    },
+    queryFn: () => (user?.email ? loadPlan(user.email) : null),
     enabled: !!user?.email,
+    staleTime: 60_000,
   });
-  const raw = (data?.plan ?? "free").toString().trim().toLowerCase(); // same as the API's normalize_plan
-  const plan: Plan = raw === "pro" || raw === "ultimate" ? (raw as Plan) : "free";
+  const plan: Plan = data?.plan ?? "free";
   const label = plan === "free" ? "Free" : plan === "pro" ? "Pro" : "Ultimate";
   // Loading until the session is known and, when signed in, the plan has arrived, so callers
   // can show a skeleton instead of flashing the Free plan before Pro.
   const isLoading = authLoading || (!!user?.email && isPending);
-  return { plan, label, isFree: plan === "free", isPaid: plan !== "free", isLoading };
+  return {
+    plan, label, isFree: plan === "free", isPaid: plan !== "free", isLoading,
+    // Stored plan (what Lemon Squeezy bills). Differs from `plan` only for admins.
+    billingPlan: (data?.billingPlan ?? "free") as Plan,
+    isAdmin: !!data?.admin,
+  };
 }

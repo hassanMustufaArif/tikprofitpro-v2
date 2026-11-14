@@ -23,7 +23,9 @@ function portalUrl(resp: any): string {
 const SettingsPage = () => {
   const { user, signOut } = useAuth();
 
-  const { plan, isLoading: planLoading } = usePlan();
+  // Billing page: show the stored (Lemon Squeezy) plan. Admins see everything as Ultimate elsewhere,
+  // but they have no subscription to manage unless they really bought one.
+  const { billingPlan: plan, isLoading: planLoading } = usePlan();
   const isPaid = plan === "pro" || plan === "ultimate";
   const { data: creditsResp } = useQuery({ queryKey: ["credits"], queryFn: () => api.getCredits(), enabled: !!user, retry: false });
 
